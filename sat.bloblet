@@ -1,11 +1,4 @@
-# TODO: Do we need SLES 15 SP2 here for 1.4?
-# SLES 15 SP1 NCN RPMS
---exclude-file-except '*.rpm' --exclude-file '.*crayctl.*.rpm|.*\.src\.rpm|.*\.aarch64\.rpm' --latest-dir rpms/cray-sles15-ncn --latest-trim --exclude-dir-except 'sle15_sp1_ncn/.*(?!src)(?!aarch64)/dev/master' --createrepo sat
-# TODO: I believe we should remove crayctl RPMs
-# SLES 15 SP1 NCN crayctl rpms
---rpm --exclude-file-except '*crayctl*.rpm' --exclude-file '.*\.src\.rpm|.*\.aarch64\.rpm' --latest-dir crayctldeploy --latest-trim --exclude-dir-except 'sle15_sp1_ncn/.*(?!src)(?!aarch64)/dev/master' --createrepo sat
+# SLES 15 SP2 NCN RPMS
+--exclude-file-except '*.rpm' --exclude-file '.*crayctl.*.rpm|.*\.src\.rpm|.*\.aarch64\.rpm' --latest-dir rpms/cray-sles15-ncn --latest-trim --exclude-dir-except 'sle15_sp2_ncn/.*(?!src)(?!aarch64)/dev/master' --createrepo sat
 # Docker images
 --docker --exclude-file-except '*dockerimage.tar' --latest-dir docker-images/cray --latest-trim --exclude-dir-except 'dev/master' sat
-# TODO: I do not believe we have any helm charts if we put monasca-translator in SMA product stream
-# Helm
---exclude-file-except '*.tgz' --latest-dir helm --latest-trim --exclude-dir-except '/dev/master/.*/helm' sat
