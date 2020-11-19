@@ -1,4 +1,4 @@
 # SLES 15 SP2 NCN RPMS
---exclude-file-except '*.rpm' --exclude-file '.*crayctl.*.rpm|.*\.src\.rpm|.*\.aarch64\.rpm' --latest-dir rpms/cray-sles15-ncn --latest-trim --exclude-dir-except 'sle15_sp2_ncn/.*(?!src)(?!aarch64)/dev/master' --createrepo sat
+--exclude-file-except '*.rpm' --exclude-file '.*crayctl.*.rpm|.*\.src\.rpm|.*\.aarch64\.rpm' --latest-dir rpms/cray-sles15-sp2-ncn --latest-trim --exclude-dir-except 'sle15_sp2_ncn/.*(?!src)(?!aarch64)/dev/master' --createrepo sat
 # Docker images
 --docker --exclude-file-except '*dockerimage.tar' --latest-dir docker-images/cray --latest-trim --exclude-dir-except 'dev/master' sat
