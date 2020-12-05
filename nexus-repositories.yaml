@@ -1,0 +1,16 @@
+# Copyright 2020 Hewlett Packard Enterprise Development LP
+---
+name: @RELEASE@-sle-15sp2
+format: raw
+storage:
+  blobStoreName: sat
+---
+name: sat-sle-15sp2
+format: raw
+storage:
+  blobStoreName: sat
+type: group
+group:
+  memberNames:
+  - @RELEASE@-sle-15sp2
+
