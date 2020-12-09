@@ -1,0 +1,6 @@
+dtr.dev.cray.com:
+  tls-verify: true
+  images:
+    cray/cray-sat:
+    # TODO: Update this with version to release
+    - 3.1.0-20201204233432_5d2650f
