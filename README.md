@@ -20,7 +20,7 @@ release distribution:
 The default `BLOBLET_URL` will pull RPM artifacts built from the master branch.
 This will need to be updated for each Shasta release branch. For example, to
 pull from the v1.4 release bloblet, set the `BLOBLET_URL` to:
-`http://dst.us.cray.com/dstrepo/bloblets/badger/release/1.4/`
+`http://dst.us.cray.com/dstrepo/bloblets/sat/release/1.4/`
 
 To create a release distribution, run `release.sh`:
 
