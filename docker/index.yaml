@@ -1,6 +1,0 @@
-dtr.dev.cray.com:
-  tls-verify: true
-  images:
-    cray/cray-sat:
-    # TODO: Update this with version to release
-    - 3.3.0-20210205182148_13c598b
