@@ -1,0 +1,7 @@
+dtr.dev.cray.com:
+  tls-verify: true
+  images:
+    cray/cray-sat:
+    - @SAT_VERSION@
+    cray/cray-product-catalog-update:
+    - 0.0.3

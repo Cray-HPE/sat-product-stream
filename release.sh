@@ -3,7 +3,7 @@
 # Package the the SAT release distribution and generate a gzipped tar file that
 # contains everything needed to install SAT on a system.
 # 
-# Copyright 2020 Hewlett Packard Enterprise Development LP
+# Copyright 2020-2021 Hewlett Packard Enterprise Development LP
 
 set -ex
 
@@ -19,6 +19,13 @@ set -ex
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/release.sh"
 
+# Substitute SAT version
+source "${ROOTDIR}/component_versions.sh"
+for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml"
+do
+    sed -e "s/@SAT_VERSION@/${SAT_VERSION}/" $f.in > $f
+done
+
 requires rsync sed realpath
 
 BUILDDIR="${1:-"$(realpath -m "$ROOTDIR/dist/${RELEASE}")"}"
@@ -31,6 +38,10 @@ mkdir -p "$BUILDDIR"
 mkdir -p "${BUILDDIR}/lib"
 rsync -aq "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/install.sh" "${BUILDDIR}/lib/install.sh"
 rsync -aq "${ROOTDIR}/install.sh" "${BUILDDIR}/"
+
+# copy SAT data for cray-product-catalog
+mkdir -p "${BUILDDIR}/cray-product-catalog"
+rsync -aq "${ROOTDIR}/cray-product-catalog/sat.yaml" "${BUILDDIR}/cray-product-catalog/sat.yaml"
 
 # generate a script that can be sourced to set RELEASE, RELEASE_NAME, and
 # RELEASE_VERSION at install time
