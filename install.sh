@@ -27,7 +27,7 @@ nexus-setup repositories "${ROOTDIR}/nexus-repositories.yaml"
 nexus-upload raw "${ROOTDIR}/rpms/${RELEASE_NAME}-sle-15sp2" "${RELEASE}-sle-15sp2"
 
 # Add SAT to cray-product-catalog
-product_catalog_image=${CRAY_PRODUCT_CATALOG_UPDATE_IMAGE:-registry.local/cray/cray-product-catalog-update:0.0.3}
+product_catalog_image=${CRAY_PRODUCT_CATALOG_UPDATE_IMAGE:-registry.local/cray/cray-product-catalog-update:0.0.4}
 podman run --rm --name sat-cpc \
     -e PRODUCT="sat" \
     -e PRODUCT_VERSION=$RELEASE_VERSION \
