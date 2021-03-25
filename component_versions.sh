@@ -1,2 +1,2 @@
 # TODO: Update this with version to release
-SAT_VERSION=3.4.0-20210303184503_8cb6d3a
+SAT_VERSION=3.5.0-20210325004035_c48be28
