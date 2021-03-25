@@ -1,2 +1,5 @@
 # Ignore the built release distribution files
 dist
+# Ignore generated versions of these files
+cray-product-catalog/sat.yaml
+docker/index.yaml
