@@ -19,11 +19,20 @@ set -ex
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/release.sh"
 
+# Determine whether to pull sat container image from stable or master repository
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$current_branch" == release/* ]]; then
+    SAT_REPO_TYPE=stable
+else
+    SAT_REPO_TYPE=master
+fi
+
 # Substitute SAT version
 source "${ROOTDIR}/component_versions.sh"
 for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml"
 do
-    sed -e "s/@SAT_VERSION@/${SAT_VERSION}/" $f.in > $f
+    sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
+        -e "s/@SAT_VERSION@/${SAT_VERSION}/" $f.in > $f
 done
 
 requires rsync sed realpath
@@ -57,6 +66,15 @@ sed -e "s/@RELEASE@/${RELEASE}/g" "${ROOTDIR}/nexus-repositories.yaml" | generat
 
 # sync container images
 skopeo-sync "${ROOTDIR}/docker/index.yaml" "${BUILDDIR}/docker"
+
+# Move the container images into the cray repository for consistency with old DTR layout
+REGISTRY_DIR="${BUILDDIR}/docker/arti.dev.cray.com"
+CRAY_REPO_DIR="${REGISTRY_DIR}/cray"
+mkdir -p "${CRAY_REPO_DIR}"
+for repo in "${REGISTRY_DIR}"/*-local; do
+    mv "${repo}"/* "${CRAY_REPO_DIR}"
+    rmdir "${repo}"
+done
 
 # sync sat repo from bloblet
 reposync "${BLOBLET_URL}/rpms/cray-sles15-sp2-ncn/" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
