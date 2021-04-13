@@ -29,10 +29,11 @@ fi
 
 # Substitute SAT version
 source "${ROOTDIR}/component_versions.sh"
-for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml"
+for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml" "${ROOTDIR}/install.sh"
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
-        -e "s/@SAT_VERSION@/${SAT_VERSION}/" $f.in > $f
+        -e "s/@SAT_VERSION@/${SAT_VERSION}/" \
+        -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" $f.in > $f
 done
 
 requires rsync sed realpath
@@ -47,6 +48,7 @@ mkdir -p "$BUILDDIR"
 mkdir -p "${BUILDDIR}/lib"
 rsync -aq "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/install.sh" "${BUILDDIR}/lib/install.sh"
 rsync -aq "${ROOTDIR}/install.sh" "${BUILDDIR}/"
+chmod 755 "${BUILDDIR}/install.sh"
 
 # copy SAT data for cray-product-catalog
 mkdir -p "${BUILDDIR}/cray-product-catalog"

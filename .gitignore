@@ -3,3 +3,4 @@ dist
 # Ignore generated versions of these files
 cray-product-catalog/sat.yaml
 docker/index.yaml
+install.sh

@@ -4,4 +4,4 @@ arti.dev.cray.com:
     sat-docker-@SAT_REPO_TYPE@-local/cray-sat:
     - @SAT_VERSION@
     csm-docker-stable-local/cray-product-catalog-update:
-    - 0.0.4
+    - @CPCU_VERSION@
