@@ -1,7 +1,7 @@
-dtr.dev.cray.com:
+arti.dev.cray.com:
   tls-verify: true
   images:
-    cray/cray-sat:
+    sat-docker-@SAT_REPO_TYPE@-local/cray-sat:
     - @SAT_VERSION@
-    cray/cray-product-catalog-update:
-    - 0.0.4
+    csm-docker-stable-local/cray-product-catalog-update:
+    - @CPCU_VERSION@

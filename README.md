@@ -29,7 +29,7 @@ $ ./release.sh
 ```
 
 This can be run from any system which has access to the `BLOBLET_URL` and to
-dtr.dev.cray.com. It also requires certain tools to exist on your system like
+arti.dev.cray.com. It also requires certain tools to exist on your system like
 `rsync`, `sed`, and `realpath`. If those utilities do not exist, the script
 will fail. Install them on your system.
 
