@@ -29,11 +29,14 @@ fi
 
 # Substitute SAT version
 source "${ROOTDIR}/component_versions.sh"
-for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml" "${ROOTDIR}/install.sh"
+for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml" "${ROOTDIR}/install.sh" \
+    "${ROOTDIR}/helm/index.yaml" "${ROOTDIR}/manifests/sat.yaml"
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
         -e "s/@SAT_VERSION@/${SAT_VERSION}/" \
-        -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" $f.in > $f
+        -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
+        -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
+        -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" $f.in > $f
 done
 
 requires rsync sed realpath
@@ -80,6 +83,12 @@ done
 
 # sync sat repo from bloblet
 reposync "${BLOBLET_URL}/rpms/cray-sles15-sp2-ncn/" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
+
+# copy manifests
+rsync -aq "${ROOTDIR}/manifests/sat.yaml" "${BUILDDIR}/manifests/"
+
+# sync helm charts
+helm-sync "${ROOTDIR}/helm/index.yaml" "${BUILDDIR}/helm"
 
 # save cray/nexus-setup and quay.io/skopeo/stable images for use in install.sh
 vendor-install-deps "$(basename "$BUILDDIR")" "${BUILDDIR}/vendor"

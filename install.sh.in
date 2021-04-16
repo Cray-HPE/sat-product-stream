@@ -17,7 +17,7 @@ source "${ROOTDIR}/lib/install.sh"
 load-install-deps
 
 # Upload assets to existing repositories
-skopeo-sync "${ROOTDIR}/docker" 
+skopeo-sync "${ROOTDIR}/docker"
 
 # Setup Nexus
 nexus-setup blobstores   "${ROOTDIR}/nexus-blobstores.yaml"
@@ -26,7 +26,15 @@ nexus-setup repositories "${ROOTDIR}/nexus-repositories.yaml"
 # Upload repository contents
 nexus-upload raw "${ROOTDIR}/rpms/${RELEASE_NAME}-sle-15sp2" "${RELEASE}-sle-15sp2"
 
+# Upload helm charts
+nexus-upload helm "${ROOTDIR}/helm" "${CHARTS_REPO:-"charts"}"
+
+# Deploy manifests
+loftsman ship --manifest-path "${ROOTDIR}/manifests/sat.yaml" --charts-path "${ROOTDIR}/helm"
+
 # Add SAT to cray-product-catalog
+# Note: deploying the manifest above also updates the product catalog but this adds the sat component versions to the
+# config map, and it instantaneously updates the config map with the new version.
 product_catalog_image=${CRAY_PRODUCT_CATALOG_UPDATE_IMAGE:-registry.local/cray/cray-product-catalog-update:@CPCU_VERSION@}
 podman run --rm --name sat-cpc \
     -e PRODUCT="sat" \

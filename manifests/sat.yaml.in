@@ -1,0 +1,8 @@
+apiVersion: manifests/v1beta1
+metadata:
+  name: sat-manifest
+spec:
+  charts:
+    - name: sat-cfs-install
+      namespace: services
+      version: @SAT_CFS_HELM_VERSION@
