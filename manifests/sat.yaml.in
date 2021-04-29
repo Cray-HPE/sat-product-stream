@@ -6,3 +6,12 @@ spec:
     - name: sat-cfs-install
       namespace: services
       version: @SAT_CFS_HELM_VERSION@
+      values:
+        cray-import-config:
+          catalog:
+            image:
+              tag: @CPCU_VERSION@
+          config_image:
+            tag: @SAT_CFS_DOCKER_VERSION@
+          import_job:
+            CF_IMPORT_PRODUCT_VERSION: @RELEASE_VERSION@

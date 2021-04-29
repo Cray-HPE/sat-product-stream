@@ -34,6 +34,7 @@ for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yam
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
         -e "s/@SAT_VERSION@/${SAT_VERSION}/" \
+        -e "s/@RELEASE_VERSION@/${RELEASE_VERSION}/" \
         -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
         -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
         -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" $f.in > $f
