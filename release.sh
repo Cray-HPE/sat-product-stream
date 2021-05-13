@@ -14,7 +14,7 @@ set -ex
 # differs from each of those version numbers, and its major, minor, or patch
 # versions should be updated if either of the underlying packages change their
 # corresponding versions.
-: "${RELEASE:="${RELEASE_NAME:="sat"}-${RELEASE_VERSION:=$(cat .version)}"}"
+: "${RELEASE:="${RELEASE_NAME:="sat"}-${RELEASE_VERSION:=$(./version.sh)}"}"
 
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/release.sh"
