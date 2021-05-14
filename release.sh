@@ -7,7 +7,7 @@
 
 set -ex
 
-: "${BLOBLET_URL:="http://dst.us.cray.com/dstrepo/bloblets/sat/dev/master/"}"
+: "${BLOBLET_URL:="http://dst.us.cray.com/dstrepo/bloblets/sat/release/sat-2.1/"}"
 
 # This is the version of the SAT product, which includes the sat python package
 # and CLI as well as the sat podman wrapper script. As such, the version number
