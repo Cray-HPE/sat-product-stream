@@ -4,10 +4,7 @@
 # contains everything needed to install SAT on a system.
 # 
 # Copyright 2020-2021 Hewlett Packard Enterprise Development LP
-
 set -ex
-
-: "${BLOBLET_URL:="http://dst.us.cray.com/dstrepo/bloblets/sat/dev/master/"}"
 
 # This is the version of the SAT product, which includes the sat python package
 # and CLI as well as the sat podman wrapper script. As such, the version number
@@ -19,21 +16,24 @@ set -ex
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/release.sh"
 
-# Determine whether to pull sat container image from stable or master repository
-current_branch=$(git rev-parse --abbrev-ref HEAD)
-if [[ "$current_branch" == release/* ]]; then
-    SAT_REPO_TYPE=stable
-else
-    SAT_REPO_TYPE=master
-fi
+# Set to "master" for artifacts from master branch, "stable" for artifacts from
+# release branch.
+SAT_REPO_TYPE="master"
+# TODO(SAT-902): When RPMs are in arti, we can use SAT_REPO_TYPE instead in
+# rpm/sle-15sp2/index.yaml
+# Set to "dev/master" for RPMs from master branch, and the name of the release
+# branch, e.g. "release/sat-2.1", for RPMs from the release branch.
+CAR_REPO="dev/master"
 
 # Substitute SAT version
 source "${ROOTDIR}/component_versions.sh"
 for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml" "${ROOTDIR}/install.sh" \
-    "${ROOTDIR}/helm/index.yaml" "${ROOTDIR}/manifests/sat.yaml"
+    "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/helm/index.yaml" "${ROOTDIR}/manifests/sat.yaml"
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
+        -e "s%@CAR_REPO@%${CAR_REPO}%" \
         -e "s/@SAT_VERSION@/${SAT_VERSION}/" \
+        -e "s/@SAT_PODMAN_VERSION@/${SAT_PODMAN_VERSION}/" \
         -e "s/@RELEASE_VERSION@/${RELEASE_VERSION}/" \
         -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
         -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
@@ -82,8 +82,19 @@ for repo in "${REGISTRY_DIR}"/*-local; do
     rmdir "${repo}"
 done
 
-# sync sat repo from bloblet
-reposync "${BLOBLET_URL}/rpms/cray-sles15-sp2-ncn/" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
+# Sync RPMs using manifest file
+rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
+
+# Flatten directory structure and remove "*-team" directories
+{
+    find "${BUILDDIR}/rpms/" -name '*-team' -type d
+} | while read path; do
+    mv "$path"/* "$(dirname "$path")/"
+    rmdir "$path"
+done
+
+# Create SAT repositories
+createrepo "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
 
 # copy manifests
 rsync -aq "${ROOTDIR}/manifests/sat.yaml" "${BUILDDIR}/manifests/"

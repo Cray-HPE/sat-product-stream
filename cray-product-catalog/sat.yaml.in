@@ -1,2 +1,3 @@
 component_versions:
   sat: @SAT_VERSION@
+  sat-podman: @SAT_PODMAN_VERSION@
