@@ -5,4 +5,5 @@ cray-product-catalog/sat.yaml
 docker/index.yaml
 manifests/sat.yaml
 helm/index.yaml
+rpm/*/index.yaml
 install.sh

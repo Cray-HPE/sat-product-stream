@@ -1,5 +1,0 @@
-@Library('dst-shared@release/sat-2.1') _
- 
-blobletBuildPipeline {
-  name = "sat"
-}
