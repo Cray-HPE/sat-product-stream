@@ -27,10 +27,10 @@ To create a release distribution locally, run `release.sh`:
 $ ./release.sh
 ```
 
-This can be run from any system which has access to car.dev.cray.com and
-arti.dev.cray.com. It also requires certain tools to exist on your system like
-`rsync`, `sed`, and `realpath`. If those utilities do not exist, the script
-will fail. Install them on your system.
+This can be run from any system which has access to arti.dev.cray.com. It also
+requires certain tools to exist on your system like `rsync`, `sed`, and
+`realpath`. If those utilities do not exist, the script will fail. Install them
+on your system.
 
 This script will result in a release distribution directory and a gzipped tar
 version of that directory being created in `dist/sat-${RELEASE_VERSION}`. For
@@ -70,7 +70,5 @@ product stream, the following must be updated:
 3. Values of `SAT_VERSION`, `SAT_PODMAN_VERSION`, and `SAT_CFS_DOCKER_VERSION`
    in `component_versions.sh`.
 4. The value of `SAT_REPO_TYPE` in `release.sh` should be changed to `stable`.
-5. The value of `CAR_REPO` in `release.sh` should be changed to
-   `release/sat-x.y`.
 
 See [this confluence page for more details](https://connect.us.cray.com/confluence/display/XCCS/SAT+Branching+Model#SATBranchingModel-Step3:Createandupdatereleasebranchofsat-product-stream).
