@@ -19,11 +19,13 @@ source "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/release.s
 # Set to "master" for artifacts from master branch, "stable" for artifacts from
 # release branch.
 SAT_REPO_TYPE="master"
-# TODO(SAT-902): When RPMs are in arti, we can use SAT_REPO_TYPE instead in
-# rpm/sle-15sp2/index.yaml
-# Set to "dev/master" for RPMs from master branch, and the name of the release
-# branch, e.g. "release/sat-2.1", for RPMs from the release branch.
-CAR_REPO="dev/master"
+SEMANTIC_VERSION_ONLY=${RELEASE_VERSION%%-*}
+MAJOR_MINOR_VERSION=${SEMANTIC_VERSION_ONLY%.*}
+if [[ $SAT_REPO_TYPE == "master" ]]; then
+    ARTI_RPM_SUBDIR=dev/master
+else
+    ARTI_RPM_SUBDIR="release/${RELEASE_NAME}-${MAJOR_MINOR_VERSION}"
+fi
 
 # Substitute SAT version
 source "${ROOTDIR}/component_versions.sh"
@@ -31,7 +33,7 @@ for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yam
     "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/helm/index.yaml" "${ROOTDIR}/manifests/sat.yaml"
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
-        -e "s%@CAR_REPO@%${CAR_REPO}%" \
+        -e "s%@ARTI_RPM_SUBDIR@%${ARTI_RPM_SUBDIR}%" \
         -e "s/@SAT_VERSION@/${SAT_VERSION}/" \
         -e "s/@SAT_PODMAN_VERSION@/${SAT_PODMAN_VERSION}/" \
         -e "s/@RELEASE_VERSION@/${RELEASE_VERSION}/" \
@@ -85,9 +87,9 @@ done
 # Sync RPMs using manifest file
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
 
-# Flatten directory structure and remove "*-team" directories
+# Flatten directory structure and remove "x86_64" directories
 {
-    find "${BUILDDIR}/rpms/" -name '*-team' -type d
+    find "${BUILDDIR}/rpms/" -name 'x86_64' -type d
 } | while read path; do
     mv "$path"/* "$(dirname "$path")/"
     rmdir "$path"
