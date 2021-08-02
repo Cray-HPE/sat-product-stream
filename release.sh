@@ -38,6 +38,7 @@ do
         -e "s/@SAT_PODMAN_VERSION@/${SAT_PODMAN_VERSION}/" \
         -e "s/@RELEASE_VERSION@/${RELEASE_VERSION}/" \
         -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
+        -e "s/@SAT_INSTALL_UTILITY_VERSION@/${SAT_INSTALL_UTILITY_VERSION}/" \
         -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
         -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" $f.in > $f
 done
