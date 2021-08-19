@@ -1,3 +1,7 @@
 component_versions:
-  sat: @SAT_VERSION@
-  sat-podman: @SAT_PODMAN_VERSION@
+  docker:
+    cray/cray-sat: @SAT_VERSION@
+    cray/sat-cfs-install: @SAT_CFS_DOCKER_VERSION@
+    cray/sat-install-utility: @SAT_INSTALL_UTILITY_VERSION@
+  rpm:
+    cray-sat-podman: @SAT_PODMAN_VERSION@
