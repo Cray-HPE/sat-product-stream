@@ -1,6 +1,6 @@
 # Use a master version if on master branch; use a released version if on release branch
-SAT_VERSION=3.7.1
-SAT_PODMAN_VERSION=1.4.7-20210727154931_9200ae9
+SAT_VERSION=3.7.2
+SAT_PODMAN_VERSION=1.4.8-20210826110600_9c735b1
 # Always just use a stable release of this since it's an external dependency.
 CPCU_VERSION=0.1.3
 SAT_CFS_DOCKER_VERSION=1.0.2
