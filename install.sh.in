@@ -5,34 +5,55 @@
 # and uploads SAT rpms to those repos. It also uploads the
 # cray/cray-product-catalog-update docker image to Nexus, and then uses it to
 # add an entry to the cray-product-catalog Kubernetes configuration map.
+# Finally, it uses a Loftsman manifest to deploy a Helm chart that creates
+# a Kubernetes job to import Ansible configuration content into VCS, and
+# it waits for the job's completion.
 #
 # Copyright 2020-2021 Hewlett Packard Enterprise Development LP
 
-set -ex
+set -e
+
+[ -n "${SAT_INSTALL_DEBUG}" ] && set -x
+
+# Print a message with extra emphasis to indicate a stage.
+function print_stage(){
+    msg="$1"
+    echo "====> ${msg}"
+}
+
+# Exit with an error message and an exit code of 1.
+function exit_with_error() {
+    msg="$1"
+    >&2 echo "${msg}"
+    exit 1
+}
 
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/lib/version.sh"
 source "${ROOTDIR}/lib/install.sh"
 
+print_stage "Installing System Admin Toolkit version ${RELEASE_VERSION}"
+
+print_stage "Loading install dependencies"
 load-install-deps
 
-# Upload assets to existing repositories
+print_stage "Uploading container images to the Docker registry in Nexus"
 skopeo-sync "${ROOTDIR}/docker"
 
-# Setup Nexus
+print_stage "Setting up Nexus repositories and blobstores"
 nexus-setup blobstores   "${ROOTDIR}/nexus-blobstores.yaml"
 nexus-setup repositories "${ROOTDIR}/nexus-repositories.yaml"
 
-# Upload repository contents
+print_stage "Uploading repository contents"
 nexus-upload raw "${ROOTDIR}/rpms/${RELEASE_NAME}-sle-15sp2" "${RELEASE}-sle-15sp2"
 
-# Upload helm charts
+print_stage "Uploading helm charts"
 nexus-upload helm "${ROOTDIR}/helm" "${CHARTS_REPO:-"charts"}"
 
-# Deploy manifests
+print_stage "Deploying loftsman manifests"
 loftsman ship --manifest-path "${ROOTDIR}/manifests/sat.yaml" --charts-path "${ROOTDIR}/helm"
 
-# Add SAT to cray-product-catalog
+print_stage "Adding SAT to cray-product-catalog"
 # Note: deploying the manifest above also updates the product catalog but this adds the sat component versions to the
 # config map, and it instantaneously updates the config map with the new version.
 product_catalog_image=${CRAY_PRODUCT_CATALOG_UPDATE_IMAGE:-registry.local/cray/cray-product-catalog-update:@CPCU_VERSION@}
@@ -45,4 +66,31 @@ podman run --rm --name sat-cpc \
     -v "${ROOTDIR}/cray-product-catalog:/cray-product-catalog:ro" \
     $product_catalog_image
 
+print_stage "Cleaning up install dependencies"
 clean-install-deps
+
+# Wait for the sat-config-import job to complete.
+config_import_job_timeout=300
+config_import_job_name="sat-config-import-${RELEASE_VERSION}"
+config_import_job_namespace="services"
+config_import_error_message=$(cat <<EOF
+Waiting for Kubernetes job ${config_import_job_namespace}/${config_import_job_name} failed.
+
+Please check the job and re-run the installer if the job did not complete successfully.
+
+Run the following to check the job status:
+ kubectl describe job --namespace ${config_import_job_namespace} ${config_import_job_name}
+
+Run the following to check the job logs:
+ kubectl logs --namespace ${config_import_job_namespace} --selector job-name=${config_import_job_name} --all-containers
+EOF
+)
+
+print_stage "Waiting ${config_import_job_timeout} seconds for ${config_import_job_name} to complete"
+kubectl wait job \
+    --timeout="${config_import_job_timeout}s" \
+    --namespace="${config_import_job_namespace}" \
+    --for=condition=complete \
+    "${config_import_job_name}" || exit_with_error "${config_import_error_message}"
+
+print_stage "SAT version ${RELEASE_VERSION} has been installed."
