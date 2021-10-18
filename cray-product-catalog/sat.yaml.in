@@ -1,7 +1,21 @@
 component_versions:
   docker:
-    cray/cray-sat: @SAT_VERSION@
-    cray/sat-cfs-install: @SAT_CFS_DOCKER_VERSION@
-    cray/sat-install-utility: @SAT_INSTALL_UTILITY_VERSION@
+  - name: cray/cray-sat
+    version: @SAT_VERSION@
+  - name: cray/sat-cfs-install
+    version: @SAT_CFS_DOCKER_VERSION@
+  - name: cray/sat-install-utility
+    version: @SAT_INSTALL_UTILITY_VERSION@
+  helm:
+  - name: sat-cfs-install
+    version: @SAT_CFS_HELM_VERSION@
+  repositories:
+  - name: sat-sle-15sp2
+    type: group
+    members:
+    - sat-@SAT_VERSION@-sle-15sp2
+  - name: sat-@SAT_VERSION@-sle-15sp2
+    type: hosted
   rpm:
-    cray-sat-podman: @SAT_PODMAN_VERSION@
+  - name: cray-sat-podman
+    version: @SAT_PODMAN_VERSION@
