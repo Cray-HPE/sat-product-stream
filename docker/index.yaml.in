@@ -7,5 +7,7 @@ arti.dev.cray.com:
     - @SAT_CFS_DOCKER_VERSION@
     sat-docker-@SAT_REPO_TYPE@-local/sat-install-utility:
     - @SAT_INSTALL_UTILITY_VERSION@
+    sat-docker-@SAT_REPO_TYPE@-local/cfs-config-util:
+    - @CFS_CONFIG_UTIL_VERSION@
     csm-docker-remote/stable/cray-product-catalog-update:
     - @CPCU_VERSION@

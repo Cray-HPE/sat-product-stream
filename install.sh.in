@@ -95,4 +95,12 @@ kubectl wait job \
     --for=condition=complete \
     "${config_import_job_name}" || exit_with_error "${config_import_error_message}"
 
+print_stage "Updating active CFS configurations"
+cfs_config_util_image=${CRAY_CFS_CONFIG_UTIL_IMAGE:-registry.local/cray/cfs-config-util:@CFS_CONFIG_UTIL_VERSION@}
+podman run --rm --name sat-cfs-modify \
+    --mount "type=bind,src=/etc/kubernetes/admin.conf,target=$HOME/.kube/config,ro=true" \
+    --mount "type=bind,src=/etc/pki/trust/anchors,target=/usr/local/share/ca-certificates,ro=true" \
+    "${cfs_config_util_image}" \
+    "${RELEASE_VERSION}"
+
 print_stage "SAT version ${RELEASE_VERSION} has been installed."
