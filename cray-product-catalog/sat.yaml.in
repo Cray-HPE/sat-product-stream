@@ -13,8 +13,8 @@ component_versions:
   - name: sat-sle-15sp2
     type: group
     members:
-    - sat-@SAT_VERSION@-sle-15sp2
-  - name: sat-@SAT_VERSION@-sle-15sp2
+    - sat-@RELEASE_VERSION@-sle-15sp2
+  - name: sat-@RELEASE_VERSION@-sle-15sp2
     type: hosted
   rpm:
   - name: cray-sat-podman
