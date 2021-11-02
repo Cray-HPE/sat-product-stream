@@ -80,10 +80,11 @@ skopeo-sync "${ROOTDIR}/docker/index.yaml" "${BUILDDIR}/docker"
 REGISTRY_DIR="${BUILDDIR}/docker/arti.dev.cray.com"
 CRAY_REPO_DIR="${REGISTRY_DIR}/cray"
 mkdir -p "${CRAY_REPO_DIR}"
-for repo in "${REGISTRY_DIR}"/*-local; do
+for repo in "${REGISTRY_DIR}"/*-local "${REGISTRY_DIR}/csm-docker-remote/stable"; do
     mv "${repo}"/* "${CRAY_REPO_DIR}"
     rmdir "${repo}"
 done
+rmdir "${REGISTRY_DIR}/csm-docker-remote"
 
 # Sync RPMs using manifest file
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
