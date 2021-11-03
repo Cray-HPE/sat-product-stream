@@ -40,7 +40,9 @@ do
         -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
         -e "s/@SAT_INSTALL_UTILITY_VERSION@/${SAT_INSTALL_UTILITY_VERSION}/" \
         -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
-        -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" $f.in > $f
+        -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" \
+        -e "s/@CFS_CONFIG_UTIL_VERSION@/${CFS_CONFIG_UTIL_VERSION}/" \
+        $f.in > $f
 done
 
 requires rsync sed realpath
