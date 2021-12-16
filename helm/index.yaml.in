@@ -1,4 +1,4 @@
-http://helmrepo.dev.cray.com:8080/:
+https://arti.dev.cray.com/artifactory/sat-helm-@SAT_REPO_TYPE@-local/:
   charts:
     sat-cfs-install:
       - @SAT_CFS_HELM_VERSION@
