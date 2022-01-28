@@ -18,7 +18,7 @@ source "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/release.s
 
 # Set to "master" for artifacts from master branch, "stable" for artifacts from
 # release branch.
-SAT_REPO_TYPE="master"
+SAT_REPO_TYPE="stable"
 SEMANTIC_VERSION_ONLY=${RELEASE_VERSION%%-*}
 MAJOR_MINOR_VERSION=${SEMANTIC_VERSION_ONLY%.*}
 if [[ $SAT_REPO_TYPE == "master" ]]; then
