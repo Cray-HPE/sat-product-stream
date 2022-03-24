@@ -47,14 +47,9 @@ The `install.sh` script in this repository installs the release distribution on
 a system. It syncs the Docker images and RPM repositories included in the
 release distribution to Nexus.
 
-For the details steps to install the System Admin Toolkit (SAT) product stream
-from the release distribution gzipped tar file, see the following page in
-confluence:
-
-https://connect.us.cray.com/confluence/display/XCCS/SAT+1.5+Install+and+Upgrade+Instructions
-
-The final location of the detailed install documentation is expected to be the
-[SAT / sat-docs git repository](https://stash.us.cray.com/projects/SAT/repos/sat-docs/browse).
+For install instructions, see the [hpc-sat-docs git repository](https://github.hpe.com/hpe/hpc-sat-docs).
+For HTML and PDF versions of that documentation see the appropriate directory of
+the form `sat-x.y` in the [pubs-misc-stable-local Artifactory repository](https://arti.dev.cray.com/ui/native/pubs-misc-stable-local/release/).
 
 ## Manually testing a release on a system
 Create the release distribution as described in "Packaging" above. Install the
