@@ -14,7 +14,7 @@ set -ex
 : "${RELEASE:="${RELEASE_NAME:="sat"}-${RELEASE_VERSION:=$(./version.sh)}"}"
 
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
-source "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/release.sh"
+source "${ROOTDIR}/vendor/github.hpe.com/hpe/hpc-shastarelm-release/lib/release.sh"
 
 # Set to "master" for artifacts from master branch, "stable" for artifacts from
 # release branch.
@@ -55,7 +55,7 @@ mkdir -p "$BUILDDIR"
 
 # copy install scripts
 mkdir -p "${BUILDDIR}/lib"
-rsync -aq "${ROOTDIR}/vendor/stash.us.cray.com/scm/shastarelm/release/lib/install.sh" "${BUILDDIR}/lib/install.sh"
+rsync -aq "${ROOTDIR}/vendor/github.hpe.com/hpe/hpc-shastarelm-release/lib/install.sh" "${BUILDDIR}/lib/install.sh"
 rsync -aq "${ROOTDIR}/install.sh" "${BUILDDIR}/"
 chmod 755 "${BUILDDIR}/install.sh"
 
