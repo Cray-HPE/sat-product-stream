@@ -11,7 +11,7 @@ spec:
           catalog:
             image:
               # Use the version the SAT product put into Nexus
-              repository: registry.local/cray/cray-product-catalog
+              repository: registry.local/cray/cray-product-catalog-update
               tag: @CPCU_VERSION@
           config_image:
             image:

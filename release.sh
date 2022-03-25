@@ -78,15 +78,17 @@ sed -e "s/@RELEASE@/${RELEASE}/g" "${ROOTDIR}/nexus-repositories.yaml" | generat
 # sync container images
 skopeo-sync "${ROOTDIR}/docker/index.yaml" "${BUILDDIR}/docker"
 
-# Move the container images into the cray repository for consistency with old DTR layout
-REGISTRY_DIR="${BUILDDIR}/docker/arti.dev.cray.com"
-CRAY_REPO_DIR="${REGISTRY_DIR}/cray"
-mkdir -p "${CRAY_REPO_DIR}"
-for repo in "${REGISTRY_DIR}"/*-local "${REGISTRY_DIR}/csm-docker-remote/stable"; do
-    mv "${repo}"/* "${CRAY_REPO_DIR}"
+# Re-organize the docker directory so all docker images are uploaded to a repo
+# prefixed with "cray/" in the Nexus container image registry
+ARTI_DIR="${BUILDDIR}/docker/arti.dev.cray.com"
+CRAY_DIR="${BUILDDIR}/docker/cray"
+mkdir -p "${CRAY_DIR}"
+for repo in "${ARTI_DIR}"/*-local "${ARTI_DIR}/csm-docker-remote/stable"; do
+    mv "${repo}"/* "${CRAY_DIR}"
     rmdir "${repo}"
 done
-rmdir "${REGISTRY_DIR}/csm-docker-remote"
+rmdir "${ARTI_DIR}/csm-docker-remote"
+rmdir "${ARTI_DIR}"
 
 # Sync RPMs using manifest file
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
