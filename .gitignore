@@ -7,3 +7,5 @@ manifests/sat.yaml
 helm/index.yaml
 rpm/*/index.yaml
 install.sh
+# skopeo-sync function creates this file during release.sh
+docker/orig-index.yaml

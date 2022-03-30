@@ -10,8 +10,11 @@ spec:
         cray-import-config:
           catalog:
             image:
+              # Use the version the SAT product put into Nexus
+              repository: registry.local/cray/cray-product-catalog-update
               tag: @CPCU_VERSION@
           config_image:
-            tag: @SAT_CFS_DOCKER_VERSION@
+            image:
+              tag: @SAT_CFS_DOCKER_VERSION@
           import_job:
             CF_IMPORT_PRODUCT_VERSION: @RELEASE_VERSION@
