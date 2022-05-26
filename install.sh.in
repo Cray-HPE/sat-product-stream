@@ -15,22 +15,10 @@ set -e
 
 [ -n "${SAT_INSTALL_DEBUG}" ] && set -x
 
-# Print a message with extra emphasis to indicate a stage.
-function print_stage(){
-    msg="$1"
-    echo "====> ${msg}"
-}
-
-# Exit with an error message and an exit code of 1.
-function exit_with_error() {
-    msg="$1"
-    >&2 echo "${msg}"
-    exit 1
-}
-
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/lib/version.sh"
 source "${ROOTDIR}/lib/install.sh"
+source "${ROOTDIR}/install-utils.sh"
 
 print_stage "Installing System Admin Toolkit version ${RELEASE_VERSION}"
 
@@ -95,13 +83,5 @@ kubectl wait job \
     --namespace="${config_import_job_namespace}" \
     --for=condition=complete \
     "${config_import_job_name}" || exit_with_error "${config_import_error_message}"
-
-print_stage "Updating active CFS configurations"
-cfs_config_util_image=${CRAY_CFS_CONFIG_UTIL_IMAGE:-registry.local/cray/cfs-config-util:@CFS_CONFIG_UTIL_VERSION@}
-podman run --rm --name sat-cfs-modify \
-    --mount "type=bind,src=/etc/kubernetes/admin.conf,target=$HOME/.kube/config,ro=true" \
-    --mount "type=bind,src=/etc/pki/trust/anchors,target=/usr/local/share/ca-certificates,ro=true" \
-    "${cfs_config_util_image}" \
-    "${RELEASE_VERSION}"
 
 print_stage "SAT version ${RELEASE_VERSION} has been installed."

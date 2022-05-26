@@ -27,9 +27,3 @@ CPCU_VERSION=1.3.2
 SAT_CFS_DOCKER_VERSION=1.2.3-20220608212820_4af0e77
 SAT_CFS_HELM_VERSION=2.0.1-20220608212820+4af0e77
 SAT_INSTALL_UTILITY_VERSION=1.5.2-20220608212753_6ea7477
-# TODO(CRAYSAT-1418, CRAYSAT-1449): Currently this is pulling the most recent
-# stable version of cfs-config-util from arti.dev.cray.com. When sat-product-stream
-# is compatible with the latest cfs-config-util, pull from artifactory.algol60.net
-# (requires CRAYSAT-1418). Alternatively, use the last 2.x build published to
-# artifactory.algol60.net (requires CRAYSAT-1449).
-CFS_CONFIG_UTIL_VERSION=2.0.3

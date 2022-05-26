@@ -33,15 +33,3 @@ artifactory.algol60.net:
     - @SAT_INSTALL_UTILITY_VERSION@
     csm-docker/stable/cray-product-catalog-update:
     - @CPCU_VERSION@
-
-
-# TODO(CRAYSAT-1418, CRAYSAT-1449): Currently this is pulling the most recent
-# stable version of cfs-config-util from arti.dev.cray.com. When sat-product-stream
-# is compatible with the latest cfs-config-util, pull from artifactory.algol60.net
-# (requires CRAYSAT-1418). Alternatively, use the last 2.x build published to
-# artifactory.algol60.net (requires CRAYSAT-1449).
-arti.dev.cray.com/sat-docker-stable-local:
-  tls-verify: true
-  images:
-    cfs-config-util:
-    - @CFS_CONFIG_UTIL_VERSION@

@@ -73,8 +73,11 @@ mkdir -p "$BUILDDIR"
 # copy install scripts
 mkdir -p "${BUILDDIR}/lib"
 rsync -aq "${ROOTDIR}/vendor/github.hpe.com/hpe/hpc-shastarelm-release/lib/install.sh" "${BUILDDIR}/lib/install.sh"
+rsync -aq "${ROOTDIR}/install-utils.sh" "${BUILDDIR}/"
 rsync -aq "${ROOTDIR}/install.sh" "${BUILDDIR}/"
 chmod 755 "${BUILDDIR}/install.sh"
+rsync -aq "${ROOTDIR}/update-mgmt-ncn-cfs-config.sh" "${BUILDDIR}/"
+chmod 755 "${BUILDDIR}/update-mgmt-ncn-cfs-config.sh"
 
 # copy SAT data for cray-product-catalog
 mkdir -p "${BUILDDIR}/cray-product-catalog"
@@ -98,16 +101,14 @@ skopeo-sync "${ROOTDIR}/docker/index.yaml" "${BUILDDIR}/docker"
 # Re-organize the docker directory so all docker images are uploaded to a repo
 # prefixed with "cray/" in the Nexus container image registry
 ARTI_DIR="${BUILDDIR}/docker/artifactory.algol60.net"
-# TODO(CRAYSAT-1418, CRAYSAT-1449): Remove references to INTERNAL_ARTI_DIR
-INTERNAL_ARTI_DIR="${BUILDDIR}/docker/arti.dev.cray.com"
 CRAY_DIR="${BUILDDIR}/docker/cray"
 mkdir -p "$CRAY_DIR"
 # Any directory containing "manifest.json" is assumed to be an image.
-image_dirs=$(find "$ARTI_DIR" "$INTERNAL_ARTI_DIR" -name manifest.json -exec dirname {} \;)
+image_dirs=$(find "$ARTI_DIR" -name manifest.json -exec dirname {} \;)
 for image_dir in $image_dirs; do
     mv "$image_dir" "$CRAY_DIR"
 done
-rm -r "$ARTI_DIR" "$INTERNAL_ARTI_DIR"
+rm -r "$ARTI_DIR"
 
 # Sync RPMs using manifest file
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
@@ -129,8 +130,8 @@ rsync -aq "${ROOTDIR}/manifests/sat.yaml" "${BUILDDIR}/manifests/"
 # sync helm charts
 helm-sync "${ROOTDIR}/helm/index.yaml" "${BUILDDIR}/helm"
 
-# save cray/nexus-setup and quay.io/skopeo/stable images for use in install.sh
-vendor-install-deps "$(basename "$BUILDDIR")" "${BUILDDIR}/vendor"
+# save nexus-setup, skopeo, and cfs-config-util images for use in install.sh
+vendor-install-deps --include-cfs-config-util "$(basename "$BUILDDIR")" "${BUILDDIR}/vendor"
 
 # Package the distribution into an archive
 tar -C $(realpath -m "${ROOTDIR}/dist") -zcvf $(dirname "$BUILDDIR")/${RELEASE_NAME}-${RELEASE_VERSION}.tar.gz $(basename $BUILDDIR)
