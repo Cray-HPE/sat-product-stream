@@ -1,4 +1,3 @@
-#
 # MIT License
 #
 # (C) Copyright 2022 Hewlett Packard Enterprise Development LP
@@ -21,9 +20,18 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-SAT_VERSION=3.16.1-20220608212829_ab4cc61
-SAT_PODMAN_VERSION=1.8.3-1~main~20220608224520.f6b2f62
-CPCU_VERSION=1.3.2
-SAT_CFS_DOCKER_VERSION=1.2.3-20220608212820_4af0e77
-SAT_CFS_HELM_VERSION=2.0.1-20220608212820+4af0e77
-SAT_INSTALL_UTILITY_VERSION=1.5.2-20220608212753_6ea7477
+# Common functions used by SAT product install scripts
+#
+
+# Print a message with extra emphasis to indicate a stage.
+function print_stage(){
+    msg="$1"
+    echo "====> ${msg}"
+}
+
+# Exit with an error message and an exit code of 1.
+function exit_with_error() {
+    msg="$1"
+    >&2 echo "${msg}"
+    exit 1
+}
