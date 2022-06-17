@@ -1,9 +1,31 @@
 #!/usr/bin/env bash
 #
+# MIT License
+#
+# (C) Copyright 2020-2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+#
 # Package the the SAT release distribution and generate a gzipped tar file that
 # contains everything needed to install SAT on a system.
 # 
-# Copyright 2020-2021 Hewlett Packard Enterprise Development LP
 set -ex
 
 # This is the version of the SAT product, which includes the sat python package
@@ -16,16 +38,11 @@ set -ex
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/github.hpe.com/hpe/hpc-shastarelm-release/lib/release.sh"
 
-# Set to "master" for artifacts from master branch, "stable" for artifacts from
+# Set to "unstable" for artifacts from main branch, "stable" for artifacts from
 # release branch.
 SAT_REPO_TYPE="stable"
 SEMANTIC_VERSION_ONLY=${RELEASE_VERSION%%-*}
 MAJOR_MINOR_VERSION=${SEMANTIC_VERSION_ONLY%.*}
-if [[ $SAT_REPO_TYPE == "master" ]]; then
-    ARTI_RPM_SUBDIR=dev/master
-else
-    ARTI_RPM_SUBDIR="release/${RELEASE_NAME}-${MAJOR_MINOR_VERSION}"
-fi
 
 # Substitute SAT version
 source "${ROOTDIR}/component_versions.sh"
@@ -80,15 +97,15 @@ skopeo-sync "${ROOTDIR}/docker/index.yaml" "${BUILDDIR}/docker"
 
 # Re-organize the docker directory so all docker images are uploaded to a repo
 # prefixed with "cray/" in the Nexus container image registry
-ARTI_DIR="${BUILDDIR}/docker/arti.dev.cray.com"
+ARTI_DIR="${BUILDDIR}/docker/artifactory.algol60.net"
 CRAY_DIR="${BUILDDIR}/docker/cray"
-mkdir -p "${CRAY_DIR}"
-for repo in "${ARTI_DIR}"/*-local "${ARTI_DIR}/csm-docker-remote/stable"; do
-    mv "${repo}"/* "${CRAY_DIR}"
-    rmdir "${repo}"
+mkdir -p "$CRAY_DIR"
+# Any directory containing "manifest.json" is assumed to be an image.
+image_dirs=$(find "$ARTI_DIR" -name manifest.json -exec dirname {} \;)
+for image_dir in $image_dirs; do
+    mv "$image_dir" "$CRAY_DIR"
 done
-rmdir "${ARTI_DIR}/csm-docker-remote"
-rmdir "${ARTI_DIR}"
+rm -r "$ARTI_DIR"
 
 # Sync RPMs using manifest file
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
