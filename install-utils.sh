@@ -1,3 +1,4 @@
+#
 # MIT License
 #
 # (C) Copyright 2022 Hewlett Packard Enterprise Development LP
@@ -21,7 +22,6 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Common functions used by SAT product install scripts
-#
 
 # Print a message with extra emphasis to indicate a stage.
 function print_stage(){
