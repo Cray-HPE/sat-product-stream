@@ -59,10 +59,11 @@ do
         -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
         -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" \
         -e "s/@CFS_CONFIG_UTIL_VERSION@/${CFS_CONFIG_UTIL_VERSION}/" \
+        -e "s/@DOCS_SAT_VERSION@/${DOCS_SAT_VERSION}/" \
         $f.in > $f
 done
 
-requires rsync sed realpath
+requires rsync sed realpath rpm2cpio
 
 BUILDDIR="${1:-"$(realpath -m "$ROOTDIR/dist/${RELEASE}")"}"
 
@@ -113,16 +114,20 @@ rm -r "$ARTI_DIR"
 # Sync RPMs using manifest file
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
 
-# Flatten directory structure and remove "x86_64" directories
-{
-    find "${BUILDDIR}/rpms/" -name 'x86_64' -type d
-} | while read path; do
-    mv "$path"/* "$(dirname "$path")/"
-    rmdir "$path"
-done
-
 # Create SAT repositories
 createrepo "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
+
+# Extract docs RPM into release
+# Copied from: https://github.com/Cray-HPE/csm/blob/main/release.sh
+mkdir -p "${BUILDDIR}/tmp/docs"
+(
+    cd "${BUILDDIR}/tmp/docs"
+    find "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2" -type f -name docs-sat-\*.rpm | head -n 1 | xargs -n 1 rpm2cpio | cpio -idvm ./usr/share/doc/sat/*
+)
+mv "${BUILDDIR}/tmp/docs/usr/share/doc/sat" "${BUILDDIR}/docs"
+
+# Clean up temp space
+rm -fr "${BUILDDIR}/tmp"
 
 # copy manifests
 rsync -aq "${ROOTDIR}/manifests/sat.yaml" "${BUILDDIR}/manifests/"
