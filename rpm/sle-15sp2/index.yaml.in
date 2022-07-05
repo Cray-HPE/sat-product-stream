@@ -24,3 +24,4 @@
 https://artifactory.algol60.net/artifactory/sat-rpms/hpe/@SAT_REPO_TYPE@/sle-15sp3/:
   rpms:
   - cray-sat-podman-@SAT_PODMAN_VERSION@.x86_64
+  - docs-sat-@DOCS_SAT_VERSION@.noarch
