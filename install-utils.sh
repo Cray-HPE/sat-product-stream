@@ -35,3 +35,9 @@ function exit_with_error() {
     >&2 echo "${msg}"
     exit 1
 }
+
+# Usage: get_vcs_creds [username|password]
+function get_vcs_creds() {
+  local key="$1"
+  kubectl get secret -n services vcs-user-credentials --template="{{.data.vcs_$key}}" | base64 --decode
+}

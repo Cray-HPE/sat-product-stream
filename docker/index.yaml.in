@@ -27,9 +27,9 @@ artifactory.algol60.net:
   images:
     sat-docker/@SAT_REPO_TYPE@/cray-sat:
     - @SAT_VERSION@
-    sat-docker/@SAT_REPO_TYPE@/sat-cfs-install:
-    - @SAT_CFS_DOCKER_VERSION@
     sat-docker/@SAT_REPO_TYPE@/sat-install-utility:
     - @SAT_INSTALL_UTILITY_VERSION@
     csm-docker/stable/cray-product-catalog-update:
     - @CPCU_VERSION@
+    csm-docker/stable/cf-gitea-import:
+    - @CF_GITEA_IMPORT_VERSION@

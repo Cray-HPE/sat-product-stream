@@ -44,10 +44,15 @@ SAT_REPO_TYPE="unstable"
 SEMANTIC_VERSION_ONLY=${RELEASE_VERSION%%-*}
 MAJOR_MINOR_VERSION=${SEMANTIC_VERSION_ONLY%.*}
 
-# Substitute SAT version
+DISABLE_GPG_CHECK=yes
+if [[ "${SAT_REPO_TYPE}" == "stable" ]]; then
+    DISABLE_GPG_CHECK=no
+fi
+
+# Substitute SAT variables
 source "${ROOTDIR}/component_versions.sh"
-for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml" "${ROOTDIR}/install.sh" \
-    "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/helm/index.yaml" "${ROOTDIR}/manifests/sat.yaml"
+for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat-component-versions.yaml" \
+    "${ROOTDIR}/install.sh" "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/ansible/roles/sat-ncn/defaults/main.yml"
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
         -e "s%@ARTI_RPM_SUBDIR@%${ARTI_RPM_SUBDIR}%" \
@@ -55,9 +60,9 @@ do
         -e "s/@SAT_PODMAN_VERSION@/${SAT_PODMAN_VERSION}/" \
         -e "s/@RELEASE_VERSION@/${RELEASE_VERSION}/" \
         -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
+        -e "s/@CF_GITEA_IMPORT_VERSION@/${CF_GITEA_IMPORT_VERSION}/" \
+        -e "s/@DISABLE_GPG_CHECK@/${DISABLE_GPG_CHECK}/" \
         -e "s/@SAT_INSTALL_UTILITY_VERSION@/${SAT_INSTALL_UTILITY_VERSION}/" \
-        -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
-        -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" \
         -e "s/@CFS_CONFIG_UTIL_VERSION@/${CFS_CONFIG_UTIL_VERSION}/" \
         -e "s/@DOCS_SAT_VERSION@/${DOCS_SAT_VERSION}/" \
         $f.in > $f
@@ -98,18 +103,6 @@ sed -e "s/@RELEASE@/${RELEASE}/g" "${ROOTDIR}/nexus-repositories.yaml" | generat
 
 # sync container images
 skopeo-sync "${ROOTDIR}/docker/index.yaml" "${BUILDDIR}/docker"
-
-# Re-organize the docker directory so all docker images are uploaded to a repo
-# prefixed with "cray/" in the Nexus container image registry
-ARTI_DIR="${BUILDDIR}/docker/artifactory.algol60.net"
-CRAY_DIR="${BUILDDIR}/docker/cray"
-mkdir -p "$CRAY_DIR"
-# Any directory containing "manifest.json" is assumed to be an image.
-image_dirs=$(find "$ARTI_DIR" -name manifest.json -exec dirname {} \;)
-for image_dir in $image_dirs; do
-    mv "$image_dir" "$CRAY_DIR"
-done
-rm -r "$ARTI_DIR"
 
 # Sync RPMs using manifest file
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
