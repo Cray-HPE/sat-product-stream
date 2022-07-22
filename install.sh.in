@@ -58,13 +58,36 @@ nexus-upload raw "${ROOTDIR}/rpms/${RELEASE_NAME}-sle-15sp2" "${RELEASE}-sle-15s
 print_stage "Uploading helm charts"
 nexus-upload helm "${ROOTDIR}/helm" "${CHARTS_REPO:-"charts"}"
 
-print_stage "Deploying loftsman manifests"
-loftsman ship --manifest-path "${ROOTDIR}/manifests/sat.yaml" --charts-path "${ROOTDIR}/helm"
+print_stage "Importing SAT configuration to VCS"
+default_config_import_image_name="registry.local/cray/cf-gitea-import"
+config_import_image=${CONFIG_IMPORT_IMAGE:-$default_config_import_image_name:@CF_GITEA_IMPORT_VERSION@}
+
+# Running the config import will write a file to ${ROOTDIR}/results
+mkdir -p ${ROOTDIR}/results
+
+# Note: CF_IMPORT_GITEA_ORG and CF_IMPORT_CONTENT are set to their defaults.
+podman run --rm --name sat-config-import \
+    --user="root" \
+    --entrypoint /opt/csm/cf-gitea-import/standalone_entrypoint.sh \
+    -e CF_IMPORT_GITEA_URL="https://api-gw-service-nmn.local/vcs" \
+    -e CF_IMPORT_GITEA_USER=$(get_vcs_creds username) \
+    -e CF_IMPORT_GITEA_PASSWORD=$(get_vcs_creds password) \
+    -e CF_IMPORT_PRODUCT_NAME="sat" \
+    -e CF_IMPORT_PRODUCT_VERSION="$RELEASE_VERSION" \
+    -e CF_IMPORT_GITEA_ORG="cray" \
+    -e CF_IMPORT_CONTENT="/content" \
+    --mount "type=bind,src=${ROOTDIR}/ansible,target=/content,ro=true" \
+    --mount "type=bind,src=${ROOTDIR}/results,target=/results" \
+    --mount "type=bind,src=/etc/pki/trust/anchors,target=/usr/local/share/ca-certificates,ro=true" \
+    $config_import_image
+
+# Concatenate results from config import and component version data.
+cat ${ROOTDIR}/cray-product-catalog/sat-component-versions.yaml \
+    ${ROOTDIR}/results/records.yaml > ${ROOTDIR}/cray-product-catalog/sat.yaml
 
 print_stage "Adding SAT to cray-product-catalog"
-# Note: deploying the manifest above also updates the product catalog but this adds the sat component versions to the
-# config map, and it instantaneously updates the config map with the new version.
-product_catalog_image=${CRAY_PRODUCT_CATALOG_UPDATE_IMAGE:-registry.local/cray/cray-product-catalog-update:@CPCU_VERSION@}
+default_product_catalog_image_name="registry.local/cray/cray-product-catalog-update"
+product_catalog_image=${CRAY_PRODUCT_CATALOG_UPDATE_IMAGE:-$default_product_catalog_image_name:@CPCU_VERSION@}
 podman run --rm --name sat-cpc \
     --user="root" \
     -e PRODUCT="sat" \
@@ -79,29 +102,5 @@ podman run --rm --name sat-cpc \
 
 print_stage "Cleaning up install dependencies"
 clean-install-deps
-
-# Wait for the sat-config-import job to complete.
-config_import_job_timeout=300
-config_import_job_name="sat-config-import-${RELEASE_VERSION}"
-config_import_job_namespace="services"
-config_import_error_message=$(cat <<EOF
-Waiting for Kubernetes job ${config_import_job_namespace}/${config_import_job_name} failed.
-
-Please check the job and re-run the installer if the job did not complete successfully.
-
-Run the following to check the job status:
- kubectl describe job --namespace ${config_import_job_namespace} ${config_import_job_name}
-
-Run the following to check the job logs:
- kubectl logs --namespace ${config_import_job_namespace} --selector job-name=${config_import_job_name} --all-containers
-EOF
-)
-
-print_stage "Waiting ${config_import_job_timeout} seconds for ${config_import_job_name} to complete"
-kubectl wait job \
-    --timeout="${config_import_job_timeout}s" \
-    --namespace="${config_import_job_namespace}" \
-    --for=condition=complete \
-    "${config_import_job_name}" || exit_with_error "${config_import_error_message}"
 
 print_stage "SAT version ${RELEASE_VERSION} has been installed."

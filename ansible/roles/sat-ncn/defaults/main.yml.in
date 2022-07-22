@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2020-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -21,15 +21,20 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
+# Default variables for sat-ncn role.
+---
+sat_repos:
+  - name: sat-sle-15sp2
+    # Really this is the URI, but the zypper_repository module uses "repo"
+    repo: "https://packages.local/repository/sat-sle-15sp2"
+    # Value replaced by runBuildPrep.sh
+    disable_gpg_check: @DISABLE_GPG_CHECK@
+    disable_repo_gpg_check: yes
 
-artifactory.algol60.net:
-  tls-verify: true
-  images:
-    sat-docker/@SAT_REPO_TYPE@/cray-sat:
-    - @SAT_VERSION@
-    sat-docker/@SAT_REPO_TYPE@/sat-install-utility:
-    - @SAT_INSTALL_UTILITY_VERSION@
-    csm-docker/stable/cray-product-catalog-update:
-    - @CPCU_VERSION@
-    csm-docker/stable/cf-gitea-import:
-    - @CF_GITEA_IMPORT_VERSION@
+sat_packages:
+  - cray-sat-podman
+  - docs-sat
+
+sat_container_image_version: "@SAT_VERSION@"
+sat_container_image_version_directory: "/opt/cray/etc/sat/"
+sat_container_image_version_file: "version"
