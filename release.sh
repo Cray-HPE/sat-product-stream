@@ -38,39 +38,12 @@ set -ex
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/github.hpe.com/hpe/hpc-shastarelm-release/lib/release.sh"
 
-# Set to "unstable" for artifacts from main branch, "stable" for artifacts from
-# release branch.
-SAT_REPO_TYPE="stable"
-SEMANTIC_VERSION_ONLY=${RELEASE_VERSION%%-*}
-MAJOR_MINOR_VERSION=${SEMANTIC_VERSION_ONLY%.*}
-
-DISABLE_GPG_CHECK=yes
-if [[ "${SAT_REPO_TYPE}" == "stable" ]]; then
-    DISABLE_GPG_CHECK=no
-fi
-
-# Substitute SAT variables
-source "${ROOTDIR}/component_versions.sh"
-for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat-component-versions.yaml" \
-    "${ROOTDIR}/install.sh" "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/ansible/roles/sat-ncn/defaults/main.yml"
-do
-    sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
-        -e "s%@ARTI_RPM_SUBDIR@%${ARTI_RPM_SUBDIR}%" \
-        -e "s/@SAT_VERSION@/${SAT_VERSION}/" \
-        -e "s/@SAT_PODMAN_VERSION@/${SAT_PODMAN_VERSION}/" \
-        -e "s/@RELEASE_VERSION@/${RELEASE_VERSION}/" \
-        -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
-        -e "s/@CF_GITEA_IMPORT_VERSION@/${CF_GITEA_IMPORT_VERSION}/" \
-        -e "s/@DISABLE_GPG_CHECK@/${DISABLE_GPG_CHECK}/" \
-        -e "s/@SAT_INSTALL_UTILITY_VERSION@/${SAT_INSTALL_UTILITY_VERSION}/" \
-        -e "s/@CFS_CONFIG_UTIL_VERSION@/${CFS_CONFIG_UTIL_VERSION}/" \
-        -e "s/@DOCS_SAT_VERSION@/${DOCS_SAT_VERSION}/" \
-        $f.in > $f
-done
+"${ROOTDIR}/render_templates.sh"
 
 requires rsync sed realpath rpm2cpio
 
 BUILDDIR="${1:-"$(realpath -m "$ROOTDIR/dist/${RELEASE}")"}"
+SNYK_SCAN_DIR="${BUILDDIR}/scans"
 
 # initialize build directory
 [[ -d "$BUILDDIR" ]] && rm -fr "$BUILDDIR"
@@ -107,6 +80,22 @@ sed -e "s/@RELEASE@/${RELEASE}/g" "${ROOTDIR}/nexus-repositories.yaml" | generat
 # sync container images
 skopeo-sync "${ROOTDIR}/docker/index.yaml" "${BUILDDIR}/docker"
 
+# scan container images
+if [[ -z "$NO_SKYK_SCAN" ]]; then
+    mkdir -p "$SNYK_SCAN_DIR"
+    all_images=$(list-images "${ROOTDIR}/docker/index.yaml")
+    cd "$SNYK_SCAN_DIR"
+    for image in $all_images; do
+        snyk-scan "$image"
+    done
+    snyk_results=$(find "$SNYK_SCAN_DIR" -name "snyk.json")
+    snyk-aggregate-results "$snyk_results"
+    for result in $snyk_results; do
+        snyk-to-html "$result"
+    done
+    cd -
+fi
+
 # Re-organize the docker directory so all docker images are uploaded to a repo
 # prefixed with "cray/" in the Nexus container image registry
 ARTI_DIR="${BUILDDIR}/docker/artifactory.algol60.net"
@@ -139,6 +128,16 @@ rm -fr "${BUILDDIR}/tmp"
 
 # save nexus-setup, skopeo, and cfs-config-util images for use in install.sh
 vendor-install-deps --include-cfs-config-util "$(basename "$BUILDDIR")" "${BUILDDIR}/vendor"
+
+if [[ -z "$NO_SNYK_SCAN" ]]; then
+    # Save snyk results spreadsheet as a separate asset.
+    mv "$SNYK_SCAN_DIR/snyk.xlsx" "${ROOTDIR}/dist/${RELEASE}-snyk-results.xlsx"
+    # Package scans as an independent archive.
+    snyk_archive_name="${RELEASE}-snyk-results.tar.gz"
+    tar -C $(realpath -m "$BUILDDIR") -zcvf "$(dirname "$BUILDDIR")/$snyk_archive_name" "$(basename "$SNYK_SCAN_DIR")"
+    # Remove scans from release distribution
+    rm -rf "${BUILDDIR}/scans"
+fi
 
 # Package the distribution into an archive
 tar -C $(realpath -m "${ROOTDIR}/dist") -zcvf $(dirname "$BUILDDIR")/${RELEASE_NAME}-${RELEASE_VERSION}.tar.gz $(basename $BUILDDIR)
