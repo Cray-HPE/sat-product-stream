@@ -4,8 +4,8 @@
 
 : "${PACKAGING_TOOLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/internal-docker-stable-local/packaging-tools:0.12.3}"
 : "${RPM_TOOLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/internal-docker-stable-local/rpm-tools:1.0.0}"
-: "${SKOPEO_IMAGE:=quay.io/skopeo/stable:v1.4.1}"
-: "${CRAY_NEXUS_SETUP_IMAGE:=artifactory.algol60.net/csm-docker/stable/cray-nexus-setup:0.6.1}"
+: "${SKOPEO_IMAGE:=arti.hpc.amslabs.hpecorp.net/quay-remote/skopeo/stable:v1.4.1}"
+: "${CRAY_NEXUS_SETUP_IMAGE:=artifactory.algol60.net/csm-docker/stable/cray-nexus-setup:0.7.1}"
 : "${ARTIFACTORY_HELPER_IMAGE:=arti.hpc.amslabs.hpecorp.net/dst-docker-master-local/arti-helper:latest}"
 : "${CFS_CONFIG_UTIL_IMAGE:=artifactory.algol60.net/csm-docker/stable/cfs-config-util:3.1.0}"
 
@@ -15,6 +15,8 @@ if [[ "${USE_PODMAN_NOT_DOCKER:-"no"}" == "yes" ]]; then
     shopt -s expand_aliases
     alias docker=podman
     declare -a podman_run_flags=(--userns keep-id)
+else
+    declare -a podman_run_flags=('') 
 fi
 
 function requires() {
@@ -87,7 +89,7 @@ function helm-sync() {
 
     [[ -d "$destdir" ]] || mkdir -p "$destdir"
 
-    docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
         ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
         -v "$(realpath "$index"):/index.yaml:ro" \
         -v "$(realpath "$destdir"):/data" \
@@ -103,14 +105,20 @@ function rpm-sync-latest() {
     local artifactory_rpm_release_url="$1"
     local destdir="$2"
 
+    if [ -z "${HPE_ARTIFACTORY_USR}" ] || [ -z "${HPE_ARTIFACTORY_PSW}" ]; then
+      echo 'Artifactory username or password missing, set HPE_ARTIFACTORY_USR & HPE_ARTIFACTORY_PSW environment variables'
+    fi
+
     [[ -d "$destdir" ]] || mkdir -p "$destdir"
 
-    docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
             ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
             -v "$(realpath "$destdir"):/artifactory/downloads" \
             "$ARTIFACTORY_HELPER_IMAGE" \
-            latest-rpms -r "${artifactory_rpm_release_url}" -d "${RELEASE_NAME}"
-
+            latest-rpms -r "${artifactory_rpm_release_url}" \
+            -d "/artifactory/downloads/${RELEASE_NAME}" \
+            -u "${HPE_ARTIFACTORY_USR}" \
+            -p "${HPE_ARTIFACTORY_PSW}"
 }
 
 # usage: rpm-sync INDEX DIRECTORY
@@ -138,7 +146,7 @@ function rpm-sync() {
         REPO_CREDS_RPMSYNC_OPTIONS="-c /repo_creds_data/${REPO_FILENAME}"
     fi
 
-    docker run ${REPO_CREDS_DOCKER_OPTIONS} --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+    docker run ${REPO_CREDS_DOCKER_OPTIONS} --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
         ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
         -v "$(realpath "$index"):/index.yaml:ro" \
         -v "$(realpath "$destdir"):/data" \
@@ -256,8 +264,8 @@ function get-pyyaml() {
     python3 -m ensurepip || true
     run_cmd pip3 install PyYAML \
             --no-cache-dir \
-            --trusted-host arti.dev.cray.com \
-            --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
+            --trusted-host arti.hpc.amslabs.hpecorp.net \
+            --index-url https://arti.hpc.amslabs.hpecorp.net:443/artifactory/api/pypi/pypi-remote/simple \
             --ignore-installed \
             --target="$1" \
             --upgrade || return 1
@@ -344,7 +352,7 @@ function skopeo-sync() {
         echo "$(date) skopeo-sync: Beginning attempt #${attempt_number}"
         attempt_start_seconds=${SECONDS}
 
-        if docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+        if docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
                 ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
                 -v "$(realpath "$index"):/index.yaml:ro" \
                 -v "$(realpath "$destdir"):/data" \
@@ -448,7 +456,7 @@ function reposync() {
 
     [[ -d "$destdir" ]] || mkdir -p "$destdir"
 
-    docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
         ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
         -v "$(realpath "$destdir"):/data" \
         "$RPM_TOOLS_IMAGE" \
@@ -469,7 +477,7 @@ function createrepo() {
         return 1
     fi
 
-    docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
         ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
         -v "$(realpath "$repodir"):/data" \
         "$RPM_TOOLS_IMAGE" \
@@ -508,7 +516,7 @@ function vendor-install-deps() {
     [[ -d "$destdir" ]] || mkdir -p "$destdir"
 
     if [[ "${include_nexus:-"yes"}" == "yes" ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+        docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
             ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
             -v "$(realpath "$destdir"):/data" \
             "$SKOPEO_IMAGE" \
@@ -516,7 +524,7 @@ function vendor-install-deps() {
     fi
 
     if [[ "${include_skopeo:-"yes"}" == "yes" ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+        docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
             ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
             -v "$(realpath "$destdir"):/data" \
             "$SKOPEO_IMAGE" \
@@ -524,7 +532,7 @@ function vendor-install-deps() {
     fi
 
     if [[ "${include_cfs_config_util:-"no"}" == "yes" ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" "${podman_run_flags[@]}" \
+        docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
             ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
             -v "$(realpath "$destdir"):/data" \
             "$SKOPEO_IMAGE" \
