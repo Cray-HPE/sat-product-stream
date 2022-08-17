@@ -44,10 +44,15 @@ SAT_REPO_TYPE="stable"
 SEMANTIC_VERSION_ONLY=${RELEASE_VERSION%%-*}
 MAJOR_MINOR_VERSION=${SEMANTIC_VERSION_ONLY%.*}
 
-# Substitute SAT version
+DISABLE_GPG_CHECK=yes
+if [[ "${SAT_REPO_TYPE}" == "stable" ]]; then
+    DISABLE_GPG_CHECK=no
+fi
+
+# Substitute SAT variables
 source "${ROOTDIR}/component_versions.sh"
-for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat.yaml" "${ROOTDIR}/install.sh" \
-    "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/helm/index.yaml" "${ROOTDIR}/manifests/sat.yaml"
+for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat-component-versions.yaml" \
+    "${ROOTDIR}/install.sh" "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/ansible/roles/sat-ncn/defaults/main.yml"
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
         -e "s%@ARTI_RPM_SUBDIR@%${ARTI_RPM_SUBDIR}%" \
@@ -55,9 +60,9 @@ do
         -e "s/@SAT_PODMAN_VERSION@/${SAT_PODMAN_VERSION}/" \
         -e "s/@RELEASE_VERSION@/${RELEASE_VERSION}/" \
         -e "s/@CPCU_VERSION@/${CPCU_VERSION}/" \
+        -e "s/@CF_GITEA_IMPORT_VERSION@/${CF_GITEA_IMPORT_VERSION}/" \
+        -e "s/@DISABLE_GPG_CHECK@/${DISABLE_GPG_CHECK}/" \
         -e "s/@SAT_INSTALL_UTILITY_VERSION@/${SAT_INSTALL_UTILITY_VERSION}/" \
-        -e "s/@SAT_CFS_DOCKER_VERSION@/${SAT_CFS_DOCKER_VERSION}/" \
-        -e "s/@SAT_CFS_HELM_VERSION@/${SAT_CFS_HELM_VERSION}/" \
         -e "s/@CFS_CONFIG_UTIL_VERSION@/${CFS_CONFIG_UTIL_VERSION}/" \
         -e "s/@DOCS_SAT_VERSION@/${DOCS_SAT_VERSION}/" \
         $f.in > $f
@@ -82,7 +87,10 @@ chmod 755 "${BUILDDIR}/update-mgmt-ncn-cfs-config.sh"
 
 # copy SAT data for cray-product-catalog
 mkdir -p "${BUILDDIR}/cray-product-catalog"
-rsync -aq "${ROOTDIR}/cray-product-catalog/sat.yaml" "${BUILDDIR}/cray-product-catalog/sat.yaml"
+rsync -aq "${ROOTDIR}/cray-product-catalog/sat-component-versions.yaml" "${BUILDDIR}/cray-product-catalog/sat-component-versions.yaml"
+
+# copy Ansible plays, exclude roles/sat-ncn/defaults/main.yml.in
+rsync --exclude "*.in" -aq "${ROOTDIR}/ansible" "${BUILDDIR}"
 
 # generate a script that can be sourced to set RELEASE, RELEASE_NAME, and
 # RELEASE_VERSION at install time
@@ -128,12 +136,6 @@ mv "${BUILDDIR}/tmp/docs/usr/share/doc/sat" "${BUILDDIR}/docs"
 
 # Clean up temp space
 rm -fr "${BUILDDIR}/tmp"
-
-# copy manifests
-rsync -aq "${ROOTDIR}/manifests/sat.yaml" "${BUILDDIR}/manifests/"
-
-# sync helm charts
-helm-sync "${ROOTDIR}/helm/index.yaml" "${BUILDDIR}/helm"
 
 # save nexus-setup, skopeo, and cfs-config-util images for use in install.sh
 vendor-install-deps --include-cfs-config-util "$(basename "$BUILDDIR")" "${BUILDDIR}/vendor"
