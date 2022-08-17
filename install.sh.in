@@ -55,9 +55,6 @@ nexus-setup repositories "${ROOTDIR}/nexus-repositories.yaml"
 print_stage "Uploading repository contents"
 nexus-upload raw "${ROOTDIR}/rpms/${RELEASE_NAME}-sle-15sp2" "${RELEASE}-sle-15sp2"
 
-print_stage "Uploading helm charts"
-nexus-upload helm "${ROOTDIR}/helm" "${CHARTS_REPO:-"charts"}"
-
 print_stage "Importing SAT configuration to VCS"
 default_config_import_image_name="registry.local/cray/cf-gitea-import"
 config_import_image=${CONFIG_IMPORT_IMAGE:-$default_config_import_image_name:@CF_GITEA_IMPORT_VERSION@}
