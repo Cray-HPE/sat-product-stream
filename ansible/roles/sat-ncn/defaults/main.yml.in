@@ -38,3 +38,4 @@ sat_packages:
 sat_container_image_version: "@SAT_VERSION@"
 sat_container_image_version_directory: "/opt/cray/etc/sat/"
 sat_container_image_version_file: "version"
+sat_config_file: "/root/.config/sat/sat.toml"
