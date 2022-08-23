@@ -49,10 +49,16 @@
     update_cache: yes
   loop: "{{ sat_packages }}"
 
+- name: "Check if configuration file exists"
+  stat:
+    path: "{{ sat_config_file }}"
+  register: config_file_stat
+
 - name: "Ensure configuration file has 0600 permissions"
   file:
-    path: "/root/.config/sat/sat.toml"
+    path: "{{ sat_config_file }}"
     mode: 0600
+  when: config_file_stat.stat.exists
 
 - name: "Ensure tokens directory has 0700 permissions"
   file:
