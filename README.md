@@ -1,69 +1,195 @@
-# SAT Product Stream
-This repository defines the product stream for the System Admin Toolkit.
+# SHASTARELM/release
 
-## Packaging
-The `release.sh` script in this repository generates a release distribution
-for the SAT product stream. This script downloads artifacts as follows:
+SHSATARELM/release contains utilities for creating release distributions (e.g.,
+packaging assets) and facilitating installation (e.g., configuring Nexus,
+uploading assets). It may be _vendored_ into a product stream repository as
+appropriate.
 
-* Docker images listed in `docker/index.yaml`.
-* Helm charts defined in `helm/index.yaml`.
-* RPMs listed in `rpm/SLE_VERSION/index.yaml` where `SLE_VERSION` is the version
-  of SUSE Linux Enterprise for which SAT is currently packaged.
 
-It will package these along with the install script, `install.sh`, and other
-install libraries and dependencies, into a release distribution as a gzipped
-tar file.
+## Release Distributions
 
-The following environment variables can be used to control packaging of the
-release distribution:
+To facilitate integration with future CI pipeline enhancements, product stream
+repositories should contain a `release.sh` script that generates a release
+distribution, a tar-gzipped file containing all necessary assets and scripts to
+configure and install the corresponding product.
 
-| Variable          | Description                                 | Default Value                                             |
-| ----------------- | ------------------------------------------- | --------------------------------------------------------- |
-| `RELEASE_VERSION` | The release version of the SAT distribution | Return value of `version.sh` script.                      |
+Release distributions are tar-gzipped files and are expected to maintain the
+following conventional structure:
 
-To create a release distribution locally, run `release.sh`:
+* `README` -- Description of product and contents of the release distribution.
 
-```sh
-$ ./release.sh
+* `INSTALL` -- High-level installation documentation describing how to run
+  `install.sh`, including available options and recommended settings, as well
+  as where to find more comprehensive documentation (e.g., URL, in
+  `docs/install.html`).
+
+* `install.sh` -- The entry point script that facilitates installation.
+
+* `lib/` -- Directory containing helper scripts used in `install.sh`.
+
+* `vendor/` -- Directory containing installation tools vendored from upstream
+  sources.
+
+* `nexus-blobstores.yaml` and `nexus-repositories.yaml` -- Nexus configuration
+  files for blob stores and repositories to be created during `install.sh`.
+
+* `manifests/` -- Directory containing Loftsman manifests defining Helm charts
+  to be deployed. Manifests are expected to be _generated_ using `manifestgen`
+  along with the system’s `customizations.yaml` before being deployed using
+  `loftsman ship`.
+
+* `docs/` -- Directory containing rendered/generated (e.g., HTML, PDF) product
+  documentation; may also include source files and build scripts (e.g.,
+  `Makefile`).
+
+Asset directories, assuming the release distribution packages assets of that type:
+
+* `docker/` -- Directory containing ~~Docker~~ container images. Note that this
+  directory is often generated from a Skopeo sync index and should have
+  subdirectories based on image repositories. Container images should be
+  uploaded to the `registry` supported by CSM. (Exposing access to additional
+  registries will require changes to Nexus’ ingress configuration; i.e., _these
+  aren’t the droids you’re looking for_.)
+
+* `helm/` -- Directory containing Helm charts. Note that Helm charts are
+  commonly uploaded to the `charts` repository supported by CSM; however,
+  subdirectories are recommended if charts will be uploaded to different
+  product-specific Nexus repositories.
+
+* `rpms/` -- Directory containing RPM repositories. Subdirectories are expected
+  to correspond to Nexus repositories (defined in `neuxs-repositories.yaml`)
+  and must contain valid repository metadata (i.e., repodata/repomd.xml).
+
+* `squashfs/` -- Directory containing SquashFS files. Subdirectories are
+  recommended if files will be uploaded to different Nexus repositories.
+
+
+## Vendor SHASTARELM/release
+
+Use [`git-vendor`](https://github.com/brettlangdon/git-vendor), a wrapper
+around `git-subtree` commands for checking out and updating vendored
+dependencies. Installation via Homebrew is simply `brew install git-vendor`.
+Once installed, vendor this library into a product release repository via:
+
+```bash
+$ git vendor add release git@github.hpe.com:hpe/hpc-shastarelm-release.git master
++ git subtree add --prefix vendor/github.hpe.com/hpe/hpc-shastarelm-release --message 'Add "release" from "git@github.hpe.com:hpe/hpc-shastarelm-release.git@master"
+
+git-vendor-name: release
+git-vendor-dir: vendor/github.hpe.com/hpe/hpc-shastarelm-release
+git-vendor-repository: git@github.hpe.com:hpe/hpc-shastarelm-release.git
+git-vendor-ref: master
+' git@github.hpe.com:hpe/hpc-shastarelm-release.git master --squash
+git fetch git@github.hpe.com:hpe/hpc-shastarelm-release.git master
+remote: Enumerating objects: 172, done.
+remote: Counting objects: 100% (21/21), done.
+remote: Compressing objects: 100% (16/16), done.
+remote: Total 172 (delta 8), reused 15 (delta 5), pack-reused 151
+Receiving objects: 100% (172/172), 39.91 KiB | 510.00 KiB/s, done.
+Resolving deltas: 100% (81/81), done.
+From github.hpe.com:hpe/hpc-shastarelm-release
+ * branch            master     -> FETCH_HEAD
+Added dir 'vendor/github.hpe.com/hpe/hpc-shastarelm-release'
 ```
 
-This can be run from any system which has access to arti.dev.cray.com. It also
-requires certain tools to exist on your system like `rsync`, `sed`, and
-`realpath`. If those utilities do not exist, the script will fail. Install them
-on your system.
 
-This script will result in a release distribution directory and a gzipped tar
-version of that directory being created in `dist/sat-${RELEASE_VERSION}`. For
-example:
+## Nexus Setup
 
-```sh
-$ ls dist
-sat-2.2.0  sat-2.2.0.tar.gz
+The `lib/install.sh` library contains some helper functions for setting up and
+configuring Nexus. In particular:
+
+* `nexus-setup` -- Facilitates setup of blob stores and repositories
+* `nexus-upload` -- Uploads a directory of assets to a repository
+* `nexus-sync` -- Uploads container images to a registry
+
+In order to use the above helpers, release distributions should vendor the
+installer dependencies using the `vendor-install-deps` from `lib/release.sh`.
+Before using the helpers, installers must load them using `load-install-deps`
+and are expected to clean them up using `clean-install-deps`. In particular, be
+aware that `load-install-deps` sets environment variables to identify the
+install tools, which are then used in the above helpers.
+
+More advanced operations may use the Nexus REST API directly at
+https://packages.local/service/rest.
+
+
+### Naming RPM Repositories
+
+RPM repositories should be named `<product>[-<product version>]-<os dist>-<os
+version>[-compute][-<arch>]` where
+
+* `<product>` indicates the product (e.g, ‘cos’, ‘csm’, ‘sma’)
+
+* `-<product version>` indicates the product version (e.g., `-1.4.0`,
+  `-latest`, `-stable`); group or proxy repositories that represent _current_
+  or _active_ repositories omit `-<product version>`
+
+* `-<os dist>` indicates the OS distribution (e.g., `-sle`)
+
+* `-<os version>` indicates the OS version (e.g., `-15sp1`, `-15sp2`)
+
+* `-compute` must be specified if the repository contains RPMs specific to
+  compute nodes and omitted otherwise; there is no suffix for repositories
+  containing NCN RPMs
+
+* `-<arch>` must be specified if the repository is specific to a system
+  architecture (e.g., `-noarch`, `-x86_64`) and omitted otherwise
+
+
+### Deleting Blob Stores and Repositories
+
+The `nexus-setup` helper attempts to first create and then update resources. In
+general, it is able to adjust various settings for existing resources provided
+they are of the same `type`. However, if the existing resource is of a
+different type (e.g., when creating a `hosted` repository when a `proxy` one
+already exists), it will most likely fail. When this happens, the typical
+resolution is to delete the existing repository to allow `nexus-setup` to
+recreate it with the desired configuration.
+
+To delete a blob store, send an HTTP `DELETE` to
+`/service/rest/v1/blobstores/<name>`. For example,
+
+```
+# curl -sfkSL -X DELETE "https://packages.local/service/rest/v1/blobstores/<name>"
 ```
 
-## Installing
+To delete a repository, send an HTTP `DELETE` to
+`/service/rest/beta/repositories/<name>`. For example,
 
-The `install.sh` script in this repository installs the release distribution on
-a system. It syncs the Docker images and RPM repositories included in the
-release distribution to Nexus.
+```
+# curl -sfkSL -X DELETE "https://packages.local/service/rest/beta/repositories/<name>”
+```
 
-For install instructions, see the [hpc-sat-docs git repository](https://github.hpe.com/hpe/hpc-sat-docs).
-For HTML and PDF versions of that documentation see the appropriate directory of
-the form `sat-x.y` in the [pubs-misc-stable-local Artifactory repository](https://arti.dev.cray.com/ui/native/pubs-misc-stable-local/release/).
+Using `yq` all the blob stores or repositories defined in
+`nexus-blobstores.yaml` or `nexus-repositories.yaml` may be deleted with a
+single command. For blob stores, use:
 
-## Manually testing a release on a system
-Create the release distribution as described in "Packaging" above. Install the
-release as described in "Installing" above.
+`yq` v3:
 
-## Branching the SAT product stream for a Shasta release
+```
+# yq r -d '*' nexus-blobstores.yaml name | while read blobstore; do curl -sfkSL -X DELETE "https://packages.local/service/rest/v1/blobstores/${blobstore}"; done
+```
 
-When branching this repository for a new release version `x.y` of the SAT
-product stream, the following must be updated:
+`yq` v4:
 
-1. Pinned version of the "dst-shared" Jenkins shared library in `Jenkinsfile`.
-2. Patch version in the `.version` file.
-3. Values of `SAT_VERSION`, `SAT_PODMAN_VERSION`, and `SAT_CFS_DOCKER_VERSION`
-   in `component_versions.sh`.
-4. The value of `SAT_REPO_TYPE` in `release.sh` should be changed to `stable`.
+```
+# yq e -N '.name' nexus-blobstores.yaml | while read blobstore; do curl -sfkSL -X DELETE "https://packages.local/service/rest/v1/blobstores/${blobstore}"; done
+```
 
-See [this confluence page for more details](https://connect.us.cray.com/confluence/display/XCCS/SAT+Branching+Model#SATBranchingModel-Step3:Createandupdatereleasebranchofsat-product-stream).
+For repositories, use:
+
+`yq` v3:
+
+```
+# yq r -d '*' nexus-repositories.yaml name | while read repo; do curl -sfkSL -X DELETE "https://packages.local/service/rest/beta/repositories/${repo}"; done
+```
+
+`yq` v4:
+
+```
+ yq e -N '.name' nexus-repositories.yaml | while read repo; do curl -sfkSL -X DELETE "https://packages.local/service/rest/beta/repositories/${repo}"; done
+```
+
+**WARNING:** It is strongly recommended that installers do **NOT**
+automatically delete resources as part of Nexus setup. Otherwise valid content
+may be inadvertently deleted.
