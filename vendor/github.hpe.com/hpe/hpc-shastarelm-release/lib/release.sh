@@ -10,7 +10,7 @@
 : "${CFS_CONFIG_UTIL_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cfs-config-util:3.3.0}"
 : "${LIST_IMAGES_IMAGE:=artifactory.algol60.net/csm-docker/stable/list-images:1.0.0}"
 : "${SNYK_SCAN_IMAGE:=artifactory.algol60.net/csm-docker/stable/snyk-scan:1.0.0}"
-: "${SNYK_AGGREGATE_RESULTS_IMAGE:=artifactory.algol60.net/csm-docker/stable/snyk-aggregate-results:1.0.0}"
+: "${SNYK_AGGREGATE_RESULTS_IMAGE:=artifactory.algol60.net/csm-docker/stable/snyk-aggregate-results:1.0.1}"
 : "${SNYK_TO_HTML_IMAGE:=artifactory.algol60.net/csm-docker/stable/snyk-to-html:1.0.0}"
 
 # Prefer to use docker, but for environments with podman
