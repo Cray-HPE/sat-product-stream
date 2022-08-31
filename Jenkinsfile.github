@@ -44,6 +44,9 @@ pipeline {
 
     stages {
         stage('Build release distribution') {
+            environment {
+                SNYK_TOKEN = credentials('SNYK_TOKEN')
+            }
             steps {
                 sh './release.sh'
             }
@@ -54,6 +57,12 @@ pipeline {
                 publishUan(
                     artifactoryRepo: 'sat',
                     pattern: 'dist/*.tar.gz',
+                    version: env.RELEASE_VERSION,
+                    isStable: env.IS_STABLE
+                )
+                publishUan(
+                    artifactoryRepo: 'sat',
+                    pattern: 'dist/*.xlsx',
                     version: env.RELEASE_VERSION,
                     isStable: env.IS_STABLE
                 )
