@@ -21,9 +21,23 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-SAT_VERSION=3.19.2
-SAT_PODMAN_VERSION=2.0.0-1
-CPCU_VERSION=1.3.2
-SAT_INSTALL_UTILITY_VERSION=1.5.4
-DOCS_SAT_VERSION=2.4-33
-CF_GITEA_IMPORT_VERSION=1.7.0
+name: Check Licenses
+
+on:
+  pull_request:
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v18.7
+
+    - name: License Check
+      if: ${{ steps.changed-files.outputs.all_changed_files }}
+      uses: docker://artifactory.algol60.net/csm-docker/stable/license-checker:latest
+      with:
+        args: ${{ steps.changed-files.outputs.all_changed_files }}
