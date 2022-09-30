@@ -7,11 +7,11 @@
 : "${SKOPEO_IMAGE:=arti.hpc.amslabs.hpecorp.net/quay-remote/skopeo/stable:v1.4.1}"
 : "${CRAY_NEXUS_SETUP_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cray-nexus-setup:0.7.1}"
 : "${ARTIFACTORY_HELPER_IMAGE:=arti.hpc.amslabs.hpecorp.net/dst-docker-master-local/arti-helper:latest}"
-: "${CFS_CONFIG_UTIL_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cfs-config-util:3.3.0}"
-: "${LIST_IMAGES_IMAGE:=artifactory.algol60.net/csm-docker/stable/list-images:1.0.0}"
-: "${SNYK_SCAN_IMAGE:=artifactory.algol60.net/csm-docker/stable/snyk-scan:1.0.0}"
-: "${SNYK_AGGREGATE_RESULTS_IMAGE:=artifactory.algol60.net/csm-docker/stable/snyk-aggregate-results:1.0.1}"
-: "${SNYK_TO_HTML_IMAGE:=artifactory.algol60.net/csm-docker/stable/snyk-to-html:1.0.0}"
+: "${CFS_CONFIG_UTIL_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cfs-config-util:3.3.1}"
+: "${LIST_IMAGES_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/list-images:1.0.0}"
+: "${SNYK_SCAN_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-scan:1.0.0}"
+: "${SNYK_AGGREGATE_RESULTS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-aggregate-results:1.0.1}"
+: "${SNYK_TO_HTML_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-to-html:1.0.0}"
 
 # Prefer to use docker, but for environments with podman
 if [[ "${USE_PODMAN_NOT_DOCKER:-"no"}" == "yes" ]]; then
@@ -120,7 +120,7 @@ function rpm-sync-latest() {
             -v "$(realpath "$destdir"):/artifactory/downloads" \
             "$ARTIFACTORY_HELPER_IMAGE" \
             latest-rpms -r "${artifactory_rpm_release_url}" \
-            -d "/artifactory/downloads/${RELEASE_NAME}" \
+            -d "/artifactory/downloads" \
             -u "${HPE_ARTIFACTORY_USR}" \
             -p "${HPE_ARTIFACTORY_PSW}"
 }
