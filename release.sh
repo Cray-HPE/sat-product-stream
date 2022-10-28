@@ -38,9 +38,9 @@ set -ex
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/github.hpe.com/hpe/hpc-shastarelm-release/lib/release.sh"
 
-"${ROOTDIR}/render_templates.sh"
-
 requires rsync sed realpath rpm2cpio
+
+. "${ROOTDIR}/render_templates.sh"
 
 BUILDDIR="${1:-"$(realpath -m "$ROOTDIR/dist/${RELEASE}")"}"
 SNYK_SCAN_DIR="${BUILDDIR}/scans"
