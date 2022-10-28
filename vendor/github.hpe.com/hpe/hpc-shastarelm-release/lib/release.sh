@@ -12,6 +12,8 @@
 : "${SNYK_SCAN_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-scan:1.0.0}"
 : "${SNYK_AGGREGATE_RESULTS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-aggregate-results:1.0.1}"
 : "${SNYK_TO_HTML_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-to-html:1.0.0}"
+: "${CRAY_NLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cray-nls:0.3.0}"
+
 
 # Prefer to use docker, but for environments with podman
 if [[ "${USE_PODMAN_NOT_DOCKER:-"no"}" == "yes" ]]; then
@@ -653,4 +655,22 @@ function snyk-to-html() {
             --mount "type=bind,src=${results_file_dir},target=/workdir" \
             "$SNYK_TO_HTML_IMAGE" -i "/workdir/${results_filename}" -o "/workdir/snyk.html"
     done
+}
+
+# usage: iuf-validate IUF_PRODUCT_MANIFEST_FILE
+#
+# Validates the given Installation and Upgrade Framework (IUF) Product Manifest
+# file against the IUF Product Manifest schema. On successful validation, the
+# function returns 0. On a failed validation, the errors are printed to stderr,
+# and the function returns 1.
+function iuf-validate() {
+    local manifest_file="$1"
+    local manifest_basename
+    manifest_basename="$(basename "$manifest_file")"
+
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
+        ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
+        -v "$(realpath "$manifest_file"):/$manifest_basename" \
+        "$CRAY_NLS_IMAGE" \
+        validate "/$manifest_basename"
 }
