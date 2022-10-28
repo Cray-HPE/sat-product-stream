@@ -38,9 +38,9 @@ set -ex
 ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 source "${ROOTDIR}/vendor/github.hpe.com/hpe/hpc-shastarelm-release/lib/release.sh"
 
-"${ROOTDIR}/render_templates.sh"
-
 requires rsync sed realpath rpm2cpio
+
+. "${ROOTDIR}/render_templates.sh"
 
 BUILDDIR="${1:-"$(realpath -m "$ROOTDIR/dist/${RELEASE}")"}"
 SNYK_SCAN_DIR="${BUILDDIR}/scans"
@@ -57,6 +57,12 @@ rsync -aq "${ROOTDIR}/install.sh" "${BUILDDIR}/"
 chmod 755 "${BUILDDIR}/install.sh"
 rsync -aq "${ROOTDIR}/update-mgmt-ncn-cfs-config.sh" "${BUILDDIR}/"
 chmod 755 "${BUILDDIR}/update-mgmt-ncn-cfs-config.sh"
+
+# validate IUF Product Manifest file against schema
+iuf-validate "${ROOTDIR}/iuf-product-manifest.yaml"
+
+# copy IUF Product Manifest file
+rsync -aq "${ROOTDIR}/iuf-product-manifest.yaml" "${BUILDDIR}/"
 
 # copy SAT data for cray-product-catalog
 mkdir -p "${BUILDDIR}/cray-product-catalog"
