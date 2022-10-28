@@ -58,6 +58,12 @@ chmod 755 "${BUILDDIR}/install.sh"
 rsync -aq "${ROOTDIR}/update-mgmt-ncn-cfs-config.sh" "${BUILDDIR}/"
 chmod 755 "${BUILDDIR}/update-mgmt-ncn-cfs-config.sh"
 
+# validate IUF Product Manifest file against schema
+iuf-validate "${ROOTDIR}/iuf-product-manifest.yaml"
+
+# copy IUF Product Manifest file
+rsync -aq "${ROOTDIR}/iuf-product-manifest.yaml" "${BUILDDIR}/"
+
 # copy SAT data for cray-product-catalog
 mkdir -p "${BUILDDIR}/cray-product-catalog"
 rsync -aq "${ROOTDIR}/cray-product-catalog/sat-component-versions.yaml" "${BUILDDIR}/cray-product-catalog/sat-component-versions.yaml"

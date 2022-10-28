@@ -9,5 +9,6 @@ rpm/*/index.yaml
 install.sh
 ansible/roles/sat-ncn/defaults/main.yml
 cray-product-catalog/sat-component-versions.yaml
+iuf-product-manifest.yaml
 # skopeo-sync function creates this file during release.sh
 docker/orig-index.yaml

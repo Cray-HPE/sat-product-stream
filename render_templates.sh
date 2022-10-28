@@ -37,7 +37,9 @@ fi
 # Substitute SAT variables
 source "${ROOTDIR}/component_versions.sh"
 for f in "${ROOTDIR}/docker/index.yaml" "${ROOTDIR}/cray-product-catalog/sat-component-versions.yaml" \
-    "${ROOTDIR}/install.sh" "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${ROOTDIR}/ansible/roles/sat-ncn/defaults/main.yml"
+    "${ROOTDIR}/install.sh" "${ROOTDIR}/rpm/sle-15sp2/index.yaml" \
+    "${ROOTDIR}/ansible/roles/sat-ncn/defaults/main.yml" \
+    "${ROOTDIR}/iuf-product-manifest.yaml"
 do
     sed -e "s/@SAT_REPO_TYPE@/${SAT_REPO_TYPE}/" \
         -e "s%@ARTI_RPM_SUBDIR@%${ARTI_RPM_SUBDIR}%" \
