@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,7 @@ ROOTDIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # Set to "unstable" for artifacts from main branch, "stable" for artifacts from
 # release branch.
-SAT_REPO_TYPE="unstable"
+SAT_REPO_TYPE="stable"
 
 DISABLE_GPG_CHECK=yes
 if [[ "${SAT_REPO_TYPE}" == "stable" ]]; then
