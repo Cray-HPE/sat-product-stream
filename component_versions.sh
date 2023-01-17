@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -21,9 +21,9 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-SAT_VERSION=3.19.3-20220930174308_3ef6021
-SAT_PODMAN_VERSION=2.0.0-1~main~20220831191456.cfdf066
-CPCU_VERSION=1.3.2
+SAT_VERSION=3.20.0
+SAT_PODMAN_VERSION=2.0.0-1
+CPCU_VERSION=1.8.2
 CF_GITEA_IMPORT_VERSION=1.7.0
-SAT_INSTALL_UTILITY_VERSION=1.5.5-20220930174314_b701fcf
-DOCS_SAT_VERSION=2.4-57~main~20220930174304.1175660
+SAT_INSTALL_UTILITY_VERSION=1.5.6
+DOCS_SAT_VERSION=2.5-0

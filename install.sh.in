@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2020-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2020-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -92,7 +92,7 @@ podman run --rm --name sat-cpc \
     -e KUBECONFIG="/.kube/admin.conf" \
     -e YAML_CONTENT="/cray-product-catalog/sat.yaml" \
     -e VALIDATE_SCHEMA="true" \
-    -e SET_ACTIVE_VERSION="true" \
+    -e REMOVE_ACTIVE_FIELD="true" \
     -v "/etc/kubernetes:/.kube:ro" \
     -v "${ROOTDIR}/cray-product-catalog:/cray-product-catalog:ro" \
     $product_catalog_image
