@@ -23,7 +23,7 @@
  *
  */
 
-def credentialsId = 'artifactory-algol60'
+def credentialsId = 'artifactory-algol60-readonly'
 
 @Library('csm-shared-library') _
 pipeline {
