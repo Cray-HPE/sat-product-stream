@@ -12,7 +12,7 @@
 : "${SNYK_SCAN_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-scan:1.1.0}"
 : "${SNYK_AGGREGATE_RESULTS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-aggregate-results:1.0.1}"
 : "${SNYK_TO_HTML_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-to-html:1.0.0}"
-: "${CRAY_NLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cray-nls:0.8.0}"
+: "${CRAY_NLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cray-nls:0.9.8}"
 
 
 # Prefer to use docker, but for environments with podman
@@ -412,13 +412,17 @@ function skopeo-sync() {
     while [ true ]; do
         echo "$(date) skopeo-sync: Beginning attempt #${attempt_number}"
         attempt_start_seconds=${SECONDS}
+        skopeo_args=("--retry-times" "5" "--src" "yaml" "--dest" "dir" "--scoped")
+        if [ -n "$ARTIFACTORY_USER" ] && [ -n "$ARTIFACTORY_TOKEN" ]; then
+            skopeo_args+=("--src-creds" "${ARTIFACTORY_USER}:${ARTIFACTORY_TOKEN}")
+        fi
 
         if docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
                 ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
                 -v "$(realpath "$index"):/index.yaml:ro" \
                 -v "$(realpath "$destdir"):/data" \
                 "$SKOPEO_IMAGE" \
-                sync --retry-times 5 --src yaml --dest dir --scoped /index.yaml /data
+                sync "${skopeo_args[@]}" "/index.yaml" "/data"
         then
             function_rc=0
             echo "$(date) skopeo-sync: Attempt #${attempt_number} PASSED!"
@@ -581,7 +585,7 @@ function vendor-install-deps() {
             ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
             -v "$(realpath "$destdir"):/data" \
             "$SKOPEO_IMAGE" \
-            copy "docker://${CRAY_NEXUS_SETUP_IMAGE}" "docker-archive:/data/cray-nexus-setup.tar:cray-nexus-setup:${release}" || return
+            copy "docker://${CRAY_NEXUS_SETUP_IMAGE}" "docker-archive:/data/cray-nexus-setup.tar:cray-nexus-setup:${release}"
     fi
 
     if [[ "${include_skopeo:-"yes"}" == "yes" ]]; then
@@ -661,8 +665,13 @@ function snyk-scan() {
     local image="$1"
     local image_basename
     image_basename="$(basename "$image")"
+    snyk_environment_arguments=("--env" "SNYK_TOKEN=${SNYK_TOKEN}")
+    if [ -n "$ARTIFACTORY_USER" ] && [ -n "$ARTIFACTORY_TOKEN" ]; then
+        snyk_environment_arguments+=("--env" "SNYK_REGISTRY_USERNAME=${ARTIFACTORY_USER}"
+                                     "--env" "SNYK_REGISTRY_PASSWORD=${ARTIFACTORY_TOKEN}")
+    fi
 
-    docker run --user "$(id -u):$(id -g)" --rm --env "SNYK_TOKEN=${SNYK_TOKEN}" \
+    docker run --user "$(id -u):$(id -g)" --rm "${snyk_environment_arguments[@]}" \
         --mount "type=bind,src=${PWD},target=/workdir" \
         "$SNYK_SCAN_IMAGE" "/workdir" "$image" "$image_basename"
 }
