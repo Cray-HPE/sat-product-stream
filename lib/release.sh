@@ -2,9 +2,9 @@
 
 # Copyright 2020-2022 Hewlett Packard Enterprise Development LP
 
-: "${PACKAGING_TOOLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/internal-docker-stable-local/packaging-tools:0.12.3}"
+: "${PACKAGING_TOOLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/internal-docker-stable-local/packaging-tools:0.13.0}"
 : "${RPM_TOOLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/internal-docker-stable-local/rpm-tools:1.0.0}"
-: "${SKOPEO_IMAGE:=arti.hpc.amslabs.hpecorp.net/quay-remote/skopeo/stable:v1.4.1}"
+: "${SKOPEO_IMAGE:=arti.hpc.amslabs.hpecorp.net/quay-remote/skopeo/stable:v1.13.2}"
 : "${CRAY_NEXUS_SETUP_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cray-nexus-setup:0.7.1}"
 : "${ARTIFACTORY_HELPER_IMAGE:=arti.hpc.amslabs.hpecorp.net/dst-docker-master-local/arti-helper:latest}"
 : "${CFS_CONFIG_UTIL_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cfs-config-util:3.3.1}"
@@ -12,17 +12,30 @@
 : "${SNYK_SCAN_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-scan:1.1.0}"
 : "${SNYK_AGGREGATE_RESULTS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-aggregate-results:1.0.1}"
 : "${SNYK_TO_HTML_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/snyk-to-html:1.0.0}"
-: "${CRAY_NLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cray-nls:0.9.8}"
+: "${CRAY_NLS_IMAGE:=arti.hpc.amslabs.hpecorp.net/csm-docker-remote/stable/cray-nls:0.10.0}"
 
 
-# Prefer to use docker, but for environments with podman
-if [[ "${USE_PODMAN_NOT_DOCKER:-"no"}" == "yes" ]]; then
-    echo >&2 "warning: using podman, not docker"
+# Auto-detect docker or podman
+if which podman &> /dev/null; then
+    echo >&2 "info: using podman"
     shopt -s expand_aliases
     alias docker=podman
     declare -a podman_run_flags=(--userns keep-id)
+elif which docker &> /dev/null; then
+    docker_path=$(which docker)
+    # Check if docker is actually an alias to podman
+    if [[ $(readlink -f "$docker_path") == *podman* ]]; then
+        echo >&2 "info: docker is an alias to podman, using podman"
+        shopt -s expand_aliases
+        alias docker=podman
+        declare -a podman_run_flags=(--userns keep-id)
+    else
+        echo >&2 "info: using docker"
+        declare -a podman_run_flags=('')
+    fi
 else
-    declare -a podman_run_flags=('') 
+    echo >&2 "error: neither docker nor podman is installed"
+    exit 1
 fi
 
 function requires() {
@@ -95,12 +108,20 @@ function helm-sync() {
 
     [[ -d "$destdir" ]] || mkdir -p "$destdir"
 
-    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
+    #pass the repo credentials environment variables to the container that runs helm-sync
+    REPO_CREDS_DOCKER_OPTIONS=""
+    REPO_CREDS_HELMSYNC_OPTIONS=""
+    if [ -n "${REPOCREDSVARNAME:-}" ]; then
+        REPO_CREDS_DOCKER_OPTIONS="-e ${REPOCREDSVARNAME}"
+        REPO_CREDS_HELMSYNC_OPTIONS="-c ${REPOCREDSVARNAME}"
+    fi
+    
+    docker run ${REPO_CREDS_DOCKER_OPTIONS} --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
         ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
         -v "$(realpath "$index"):/index.yaml:ro" \
         -v "$(realpath "$destdir"):/data" \
         "$PACKAGING_TOOLS_IMAGE" \
-        helm-sync -n "${HELM_SYNC_NUM_CONCURRENT_DOWNLOADS:-1}" /index.yaml /data
+        helm-sync ${REPO_CREDS_HELMSYNC_OPTIONS} -n "${HELM_SYNC_NUM_CONCURRENT_DOWNLOADS:-1}" /index.yaml /data
 }
 
 # usage: rpm-sync-latest DIRECTORY ARTIFACTORY_RPM_URL
@@ -127,6 +148,31 @@ function rpm-sync-latest() {
             -p "${HPE_ARTIFACTORY_PSW}"
 }
 
+# usage: rpm-sync-src-latest DIRECTORY ARTIFACTORY_RPM_URL
+#
+# Fetches latest RPMs (including src rpms) in the specified ARTIFACTORY_RPM_URL (Arti repo) to the given DIRECTORY/RELEASE_NAME.
+
+function rpm-sync-src-latest() {
+    local artifactory_rpm_release_url="$1"
+    local destdir="$2"
+
+    if [ -z "${HPE_ARTIFACTORY_USR}" ] || [ -z "${HPE_ARTIFACTORY_PSW}" ]; then
+      echo 'Artifactory username or password missing, set HPE_ARTIFACTORY_USR & HPE_ARTIFACTORY_PSW environment variables'
+    fi
+
+    [[ -d "$destdir" ]] || mkdir -p "$destdir"
+
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
+            ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
+            -v "$(realpath "$destdir"):/artifactory/downloads" \
+            "$ARTIFACTORY_HELPER_IMAGE" \
+            latest-rpms -r "${artifactory_rpm_release_url}" \
+            -d "/artifactory/downloads" \
+            -u "${HPE_ARTIFACTORY_USR}" \
+            -p "${HPE_ARTIFACTORY_PSW}" \
+	    --src
+}
+
 # usage: rpm-sync INDEX DIRECTORY
 #
 # Syncs RPMs listed in the specified INDEX to the given DIRECTORY.
@@ -142,14 +188,12 @@ function rpm-sync() {
 
     [[ -d "$destdir" ]] || mkdir -p "$destdir"
 
-    #pass the repo credentials environment variables to the container that runs rpm-index
-    REPO_FILENAME=${REPOCREDSFILENAME:-}
-    REPO_FILENAME_PATH=${REPOCREDSPATH:-}
+   #pass the repo credentials environment variables to the container that runs rpm-sync
     REPO_CREDS_DOCKER_OPTIONS=""
     REPO_CREDS_RPMSYNC_OPTIONS=""
-    if [ ! -z "$REPO_FILENAME" ] && [ ! -z "$REPO_FILENAME_PATH" ]; then
-        REPO_CREDS_DOCKER_OPTIONS="--mount type=bind,source=${REPO_FILENAME_PATH},destination=/repo_creds_data"
-        REPO_CREDS_RPMSYNC_OPTIONS="-c /repo_creds_data/${REPO_FILENAME}"
+    if [ -n "${REPOCREDSVARNAME:-}" ]; then
+        REPO_CREDS_DOCKER_OPTIONS="-e ${REPOCREDSVARNAME}"
+        REPO_CREDS_RPMSYNC_OPTIONS="-c ${REPOCREDSVARNAME}"
     fi
 
     docker run ${REPO_CREDS_DOCKER_OPTIONS} --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
@@ -176,6 +220,8 @@ function rpm-sync() {
 #
 
 function extract-from-container () {
+    local SAVED_SHELLOPTS="${SHELLOPTS}"
+    echo "SHELLOPTS = ${SHELLOPTS}"
     set +e
     trap - ERR
     local SRC_DIR=$1
@@ -212,6 +258,11 @@ function extract-from-container () {
             fi
         fi
     done
+    if [[ "${SAVED_SHELLOPTS}" =~ "errexit" ]]; then
+        set -e
+    fi
+    echo "SHELLOPTS = ${SHELLOPTS}"
+
 }
 
 
@@ -412,8 +463,8 @@ function skopeo-sync() {
     while [ true ]; do
         echo "$(date) skopeo-sync: Beginning attempt #${attempt_number}"
         attempt_start_seconds=${SECONDS}
-        skopeo_args=("--retry-times" "5" "--src" "yaml" "--dest" "dir" "--scoped")
-        if [ -n "$ARTIFACTORY_USER" ] && [ -n "$ARTIFACTORY_TOKEN" ]; then
+        skopeo_args=("--retry-times" "5" "--src" "yaml" "--dest" "dir" "--scoped" "--all")
+        if [ -n "${ARTIFACTORY_USER:-}" ] && [ -n "${ARTIFACTORY_TOKEN:-}" ]; then
             skopeo_args+=("--src-creds" "${ARTIFACTORY_USER}:${ARTIFACTORY_TOKEN}")
         fi
 
@@ -549,8 +600,128 @@ function createrepo() {
         createrepo --verbose /data
 }
 
+# usage: get-skopeo-creds RESOURCE
+#
+# Prints 'username:password' if auth information is provided
+# through REPOCREDSVARNAME env variable for specific hostname, "" otherwise.
+#
+function get-skopeo-creds() {
+    local resource="$1"
+    if [[ -z "$resource" ]]; then
+        echo >&2 "usage: get-skopeo-creds RESOURCE"
+        return 1
+    fi
+    if [[ "${resource}" != docker://* ]]; then
+        return 0
+    fi
+    if [[ -z "${REPOCREDSVARNAME}" || -z "${!REPOCREDSVARNAME}" ]]; then
+        return 0
+    fi
+    resource=$(echo "${resource}" | cut -d/ -f3)
+    echo "${!REPOCREDSVARNAME}" | jq -r "to_entries[] | select(.key | startswith(\"https://${resource}\")) | if . == \"\" then \"\" else (.value.user + \":\" + .value.password) end"
+}
+
+# usage: skopeo-inspect SOURCE
+#
+# Uses skopeo inspect to resolve image:tag into image@digest
+#
+function skopeo-inspect() {
+    local src="$1"
+
+    if [[ -z "$src" ]]; then
+        echo >&2 "usage: skopeo-inspect SOURCE"
+        return 1
+    fi
+
+    echo >&2 "+ skopeo-inspect ${src}"
+
+    local src_trans
+    local src_path
+    local src_dir=""
+    IFS=: read -r src_trans src_path <<< "${src}"
+    if [ "${src_trans}" != "docker" ] && [ "${src_trans}" != "docker-daemon" ]; then
+        src_dir=$(realpath -m "$(dirname "${src_path}")")
+        src="${src_trans}:/src/$(basename "${src_path}")"
+    fi
+
+    local creds
+    creds=$(get-skopeo-creds "${src}")
+
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
+        ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
+        ${src_dir:+-v "${src_dir}:/src"} \
+        "$SKOPEO_IMAGE" \
+        --command-timeout 600s \
+        inspect \
+        --retry-times 5 \
+        --format "{{.Name}}@{{.Digest}}" \
+        ${creds:+"--creds=${creds}"} \
+        "${src}"
+}
+
+# usage: skopeo-copy SOURCE DESTINATION
+#
+# Uses skopeo copy to copy an image from remote location to archive or directory.
+#
+function skopeo-copy() {
+    local src="$1"
+    local dest="$2"
+
+    if [[ -z "$src" || -z "$dest" ]]; then
+        echo >&2 "usage: skopeo-copy SOURCE DESTINATION"
+        return 1
+    fi
+
+    echo >&2 "+ skopeo-copy ${src} ${dest}"
+
+    local dest_trans
+    local dest_path
+    local dest_dir=""
+    IFS=: read -r dest_trans dest_path <<< "${dest}"
+    if [ "${dest_trans}" != "docker" ] && [ "${dest_trans}" != "docker-daemon" ]; then
+        dest_dir=$(realpath -m "$(dirname "${dest_path}")")
+        mkdir -p "${dest_dir}"
+        dest="${dest_trans}:/dest/$(basename "${dest_path}")"
+    fi
+
+    local src_trans
+    local src_path
+    local src_dir=""
+    IFS=: read -r src_trans src_path <<< "${src}"
+    if [ "${src_trans}" != "docker" ] && [ "${src_trans}" != "docker-daemon" ]; then
+        src_dir=$(realpath -m "$(dirname "${src_path}")")
+        src="${src_trans}:/src/$(basename "${src_path}")"
+    fi
+
+    local arch_opts
+    if [ "${dest_trans}" == "docker-archive" ]; then
+        arch_opts="--override-os linux --override-arch amd64 --remove-signatures"
+    else
+        arch_opts="--all"
+    fi
+
+    local src_creds
+    src_creds=$(get-skopeo-creds "${src}")
+
+    local dest_creds
+    dest_creds=$(get-skopeo-creds "${dest}")
+
+    docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
+        ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
+        ${src_dir:+-v "${src_dir}:/src"} \
+        ${dest_dir:+-v "${dest_dir}:/dest"} \
+        "$SKOPEO_IMAGE" \
+        --command-timeout 600s \
+        copy \
+        ${arch_opts} \
+        --retry-times 5 \
+        ${src_creds:+"--src-creds=${src_creds}"} \
+        ${dest_creds:+"--dest-creds=${dest_creds}"} \
+        "${src}" "${dest}"
+}
+
 # usage: vendor-install-deps [--no-cray-nexus-setup] [--no-skopeo]
-#                            [--include-cfs-config-util]
+#                            [--include-cfs-config-util] [--include-rpm-tools]
 #                            RELEASE DIRECTORY
 #
 # Vendors installation tools for a specified RELEASE to the given DIRECTORY.
@@ -561,6 +732,7 @@ function vendor-install-deps() {
     local include_nexus="yes"
     local include_skopeo="yes"
     local include_cfs_config_util="no"
+    local include_rpm_tools="no"
 
     while [[ $# -gt 2 ]]; do
         local opt="$1"
@@ -569,6 +741,7 @@ function vendor-install-deps() {
         --no-cray-nexus-setup) include_nexus="no" ;;
         --no-skopeo) include_skopeo="no" ;;
         --include-cfs-config-util) include_cfs_config_util="yes" ;;
+        --include-rpm-tools) include_rpm_tools="yes" ;;
         --) break ;;
         --*) echo >&2 "error: unsupported option: $opt"; exit 2 ;; 
         *)  break ;;
@@ -581,27 +754,19 @@ function vendor-install-deps() {
     [[ -d "$destdir" ]] || mkdir -p "$destdir"
 
     if [[ "${include_nexus:-"yes"}" == "yes" ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
-            ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
-            -v "$(realpath "$destdir"):/data" \
-            "$SKOPEO_IMAGE" \
-            copy "docker://${CRAY_NEXUS_SETUP_IMAGE}" "docker-archive:/data/cray-nexus-setup.tar:cray-nexus-setup:${release}"
+        skopeo-copy "docker://${CRAY_NEXUS_SETUP_IMAGE}" "docker-archive:${destdir}/cray-nexus-setup.tar:cray-nexus-setup:${release}"
     fi
 
     if [[ "${include_skopeo:-"yes"}" == "yes" ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
-            ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
-            -v "$(realpath "$destdir"):/data" \
-            "$SKOPEO_IMAGE" \
-            copy "docker://${SKOPEO_IMAGE}" "docker-archive:/data/skopeo.tar:skopeo:${release}"
+        skopeo-copy "docker://${SKOPEO_IMAGE}" "docker-archive:${destdir}/skopeo.tar:skopeo:${release}"
     fi
 
     if [[ "${include_cfs_config_util:-"no"}" == "yes" ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" ${podman_run_flags[@]} \
-            ${DOCKER_NETWORK:+"--network=${DOCKER_NETWORK}"} \
-            -v "$(realpath "$destdir"):/data" \
-            "$SKOPEO_IMAGE" \
-            copy "docker://${CFS_CONFIG_UTIL_IMAGE}" "docker-archive:/data/cfs-config-util.tar:cfs-config-util:${release}"
+        skopeo-copy "docker://${CFS_CONFIG_UTIL_IMAGE}" "docker-archive:${destdir}/cfs-config-util.tar:cfs-config-util:${release}"
+    fi
+
+    if [[ "${include_rpm_tools:-"no"}" == "yes" ]]; then
+        skopeo-copy "docker://${RPM_TOOLS_IMAGE}" "docker-archive:${destdir}/rpm-tools.tar:rpm-tools:${release}"
     fi
 }
 
@@ -666,7 +831,7 @@ function snyk-scan() {
     local image_basename
     image_basename="$(basename "$image")"
     snyk_environment_arguments=("--env" "SNYK_TOKEN=${SNYK_TOKEN}")
-    if [ -n "$ARTIFACTORY_USER" ] && [ -n "$ARTIFACTORY_TOKEN" ]; then
+    if [ -n "${ARTIFACTORY_USER:-}" ] && [ -n "{$ARTIFACTORY_TOKEN:-}" ]; then
         snyk_environment_arguments+=("--env" "SNYK_REGISTRY_USERNAME=${ARTIFACTORY_USER}"
                                      "--env" "SNYK_REGISTRY_PASSWORD=${ARTIFACTORY_TOKEN}")
     fi
