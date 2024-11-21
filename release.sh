@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2020-2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2020-2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -119,17 +119,16 @@ rm -r "$ARTI_DIR"
 # it in two environment variables.
 # This is based on CSM release script. See: https://github.com/Cray-HPE/csm/blob/main/release.sh#L60
 if [ -n "$ARTIFACTORY_USER" ] && [ -n "$ARTIFACTORY_TOKEN" ]; then
-    # The variables REPOCREDSPATH and REPOCREDSFILENAME are expected by the release script.
-    export REPOCREDSPATH="/tmp/"
-    export REPOCREDSFILENAME="repo_creds.json"
-    repo_creds_local_path=$REPOCREDSPATH$REPOCREDSFILENAME
-    jq --null-input \
+    # The variables REPOCREDSVAR and REPOCREDSVARNAME are expected by the release script.
+    export REPOCREDSVARNAME="REPOCREDSVAR"
+    export REPOCREDSVAR=$(jq --null-input \
        --arg url "https://artifactory.algol60.net/artifactory/" \
        --arg realm "Artifactory Realm" \
        --arg user "$ARTIFACTORY_USER" \
        --arg password "$ARTIFACTORY_TOKEN" \
-       '{($url): {"realm": $realm, "user": $user, "password": $password}}' > $repo_creds_local_path
-    trap 'rm -f "${repo_creds_local_path}"' EXIT
+       '{($url): {"realm": $realm, "user": $user, "password": $password}}')
+    export REPO_CREDS_DOCKER_OPTIONS="-e ${REPOCREDSVARNAME}"
+    export REPO_CREDS_RPMSYNC_OPTIONS="-c ${REPOCREDSVARNAME}"
 fi
 rpm-sync "${ROOTDIR}/rpm/sle-15sp2/index.yaml" "${BUILDDIR}/rpms/${RELEASE_NAME}-sle-15sp2"
 
