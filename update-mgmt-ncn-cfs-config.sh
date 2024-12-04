@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022, 2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -58,7 +58,7 @@ fi
 
 print_stage "Updating CFS configuration(s)"
 
-cfs-config-util --product "${RELEASE_NAME}:${RELEASE_VERSION}" --playbook sat-ncn.yml $@
+cfs-config-util update-configs --product "${RELEASE_NAME}:${RELEASE_VERSION}" --playbook sat-ncn.yml $@
 rc=$?
 
 if [[ $rc -eq 2 ]]; then
